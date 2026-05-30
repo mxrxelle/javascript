@@ -8,6 +8,11 @@ use App\Http\Controllers\TeacherController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 
+// Landing page redirection
+Route::get('/', function () {
+    return view('dashboard'); 
+});
+
 // Registration Routes
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
 Route::post('/register', [RegisterController::class, 'register']);
@@ -17,7 +22,7 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Email Verification Routes (Kailangan para sa Auth Verification)
+// Email Verification Routes
 Route::get('/email/verify', function () {
     return view('auth.verify-email');
 })->middleware('auth')->name('verification.notice');
@@ -32,25 +37,40 @@ Route::post('/email/verification-notification', function (Request $request) {
     return back()->with('message', 'Verification link sent!');
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
-// Dashboards (Protektado ng Auth, Verified, at Roles)
-// Idinagdag natin ang 'verified' para siguradong account verified bago pumasok
+
+// Dashboards (Protected by Auth and Roles)
 Route::middleware(['auth'])->group(function () {
     
-    // Student Dashboard
+    // 1. Student Dashboard
     Route::middleware(['role:student'])->group(function () {
         Route::get('/dashboard', function () {
             return view('dashboard');
         })->name('dashboard');
     });
 
-    // Teacher Dashboard - PINALITAN NATIN ITO PARA DUMAAN SA CONTROLLER
+    // 2. Teacher Dashboard
     Route::middleware(['role:teacher'])->group(function () {
         Route::get('/teacher/dashboard', [TeacherController::class, 'index'])->name('teacher.dashboard');
     });
 
-    // Admin Dashboard
+    // 3. Admin Dashboard Group
     Route::middleware(['role:admin'])->group(function () {
+        // Main Dashboard View
         Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
-        Route::post('/admin/add-teacher', [AdminController::class, 'storeTeacher'])->name('admin.storeTeacher');
+        
+        // Route para sa Approvals Hub Page
+        Route::get('/admin/approvals', [AdminController::class, 'approvalsHub'])->name('admin.approvals');
+        
+        Route::get('/admin/users', [AdminController::class, 'userManagement'])->name('admin.users');
+
+        // In-align natin ang URL endpoint para sumakma sa dashboard registration function
+        Route::get('/admin/facilitators', [AdminController::class, 'facilitatorManagement'])->name('admin.facilitators');
+        Route::post('/admin/store-teacher', [AdminController::class, 'storeTeacher'])->name('admin.storeTeacher');
+
+        Route::post('/admin/facilitators/{id}/resend', [AdminController::class, 'resendInvite'])->name('admin.facilitators.resend');
+        
+        Route::put('/admin/users/{id}', [AdminController::class, 'updateUser'])->name('admin.users.update');
+        Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
     });
+    
 });
