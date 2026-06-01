@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certly Dashboard</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: #f4f6f8;
+            color: #00336b;
+        }
+
+        .navbar {
+            height: 110px;
+            background: #00336b;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 38px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-right: 70px;
+        }
+
+        .logo-box {
+            width: 58px;
+            height: 58px;
+            background: #ffc32b;
+            border-radius: 15px;
+            color: #00336b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 31px;
+            font-weight: 500;
+        }
+
+        .logo span {
+            font-size: 34px;
+            font-weight: 700;
+        }
+
+        .search-box {
+            width: 365px;
+            height: 60px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            padding: 0 18px;
+            margin-right: 45px;
+        }
+
+        .search-box i {
+            color: rgba(255,255,255,0.65);
+            font-size: 20px;
+            margin-right: 15px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            width: 100%;
+            font-size: 22px;
+        }
+
+        .search-box input::placeholder {
+            color: rgba(255,255,255,0.65);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 45px;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+        }
+
+        .nav-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .profile-btn {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logout {
+            color: white;
+            text-decoration: none;
+            font-size: 25px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .container {
+            padding: 48px 36px 70px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 455px;
+            gap: 45px;
+        }
+
+        h1 {
+            font-size: 52px;
+            font-weight: 800;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 5px 14px rgba(0,0,0,0.16);
+        }
+
+        .activate-card {
+            padding: 40px 34px 34px;
+            margin-bottom: 52px;
+        }
+
+        .activate-card h2 {
+            font-size: 34px;
+            margin-bottom: 28px;
+        }
+
+        .activate-card p {
+            font-size: 23px;
+            color: #555;
+            margin-bottom: 25px;
+        }
+
+        .activate-form {
+            display: flex;
+            gap: 24px;
+        }
+
+        .activate-form input {
+            flex: 1;
+            height: 70px;
+            border: 1px solid #d5d9de;
+            border-radius: 14px;
+            background: #f8fafc;
+            padding: 0 25px;
+            font-size: 23px;
+            outline: none;
+        }
+
+        .activate-form button {
+            width: 175px;
+            height: 70px;
+            border: none;
+            border-radius: 14px;
+            background: #ffc32b;
+            color: #00336b;
+            font-size: 22px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .section-title {
+            font-size: 34px;
+            font-weight: 800;
+            margin-bottom: 34px;
+        }
+
+        .courses {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 34px;
+        }
+
+        .course-card {
+            overflow: hidden;
+        }
+
+        .course-img {
+            height: 182px;
+            background: linear-gradient(135deg, #00336b, #55779c);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+        }
+
+        .course-body {
+            padding: 36px 32px;
+        }
+
+        .course-body h3 {
+            font-size: 29px;
+            margin-bottom: 16px;
+        }
+
+        .course-body p {
+            font-size: 20px;
+            color: #555;
+            line-height: 1.45;
+            margin-bottom: 28px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .progress-info span:last-child {
+            color: #00336b;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: #f1f4f7;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #ffc32b;
+        }
+
+        .resume-btn {
+            display: block;
+            text-align: center;
+            background: #00336b;
+            color: white;
+            text-decoration: none;
+            padding: 17px;
+            border-radius: 12px;
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .sidebar {
+            padding-top: 48px;
+        }
+
+        .side-card {
+            padding: 34px;
+            margin-bottom: 34px;
+        }
+
+        .side-card h3 {
+            font-size: 27px;
+            margin-bottom: 28px;
+        }
+
+        .achievement {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            background: #f7f9fb;
+            border-radius: 15px;
+            padding: 22px;
+        }
+
+        .achievement-icon {
+            width: 68px;
+            height: 68px;
+            background: #ffc32b;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 31px;
+        }
+
+        .achievement h4 {
+            font-size: 22px;
+            margin-bottom: 7px;
+        }
+
+        .achievement p,
+        .announcement p,
+        .announcement small {
+            color: #555;
+        }
+
+        .announcement-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .announcement {
+            padding-bottom: 22px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .announcement:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .announcement h4 {
+            font-size: 20px;
+            margin-bottom: 9px;
+        }
+
+        .announcement p {
+            font-size: 18px;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .announcement small {
+            font-size: 15px;
+        }
+
+        @media (max-width: 1100px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                padding-top: 0;
+            }
+
+            .courses {
+                grid-template-columns: 1fr;
+            }
+
+            .navbar {
+                height: auto;
+                flex-wrap: wrap;
+                gap: 20px;
+                padding: 25px;
+            }
+
+            .search-box {
+                width: 100%;
+                order: 3;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-box">C</div>
+            <span>Certly</span>
+        </div>
+
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search courses...">
+        </div>
+
+        <div class="nav-links">
+            <a href="#">My Courses</a>
+            <a href="#">Catalog</a>
+        </div>
+
+        <div class="nav-right">
+            <div class="profile-btn">
+                <i class="fa-regular fa-user"></i>
+            </div>
+
+            <a href="#" class="logout">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                Log Out
+            </a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="layout">
+            <div>
+                <h1>Welcome back, a!</h1>
+
+                <section class="card activate-card">
+                    <h2>Activate a Course</h2>
+                    <p>Enter your voucher code to unlock a new course</p>
+
+                    <form class="activate-form">
+                        <input type="text" placeholder="Enter Voucher Code">
+                        <button type="submit">Activate</button>
+                    </form>
+                </section>
+
+                <h2 class="section-title">My Learning</h2>
+
+                <section class="courses">
+                    <div class="card course-card">
+                        <div class="course-img">🔒</div>
+                        <div class="course-body">
+                            <h3>Intro to Cybersecurity</h3>
+                            <p>Learn the fundamentals of cybersecurity and protect digital assets</p>
+
+                            <div class="progress-info">
+                                <span>Progress</span>
+                                <span>65%</span>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 65%;"></div>
+                            </div>
+
+                            <a href="/courseviewer" class="resume-btn">Resume Learning</a>
+                        </div>
+                    </div>
+
+                    <div class="card course-card">
+                        <div class="course-img">🌐</div>
+                        <div class="course-body">
+                            <h3>Web Development Fundamentals</h3>
+                            <p>Build modern websites with HTML, CSS, and JavaScript</p>
+
+                            <div class="progress-info">
+                                <span>Progress</span>
+                                <span>30%</span>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 30%;"></div>
+                            </div>
+
+                            <a href="/courseviewer" class="resume-btn">Resume Learning</a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="sidebar">
+                <div class="card side-card">
+                    <h3>Latest Achievements</h3>
+
+                    <div class="achievement">
+                        <div class="achievement-icon">
+                            <i class="fa-solid fa-award"></i>
+                        </div>
+
+                        <div>
+                            <h4>Get Certified</h4>
+                            <p>Complete a course</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card side-card">
+                    <h3 class="announcement-title">
+                        <i class="fa-regular fa-bell"></i>
+                        Announcements
+                    </h3>
+
+                    <div class="announcement">
+                        <h4>New Courses Available</h4>
+                        <p>Check out our latest cybersecurity courses</p>
+                        <small>2 days ago</small>
+                    </div>
+
+                    <div class="announcement">
+                        <h4>Platform Update</h4>
+                        <p>New features and improvements are live</p>
+                        <small>1 week ago</small>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+</body>
+</html>
