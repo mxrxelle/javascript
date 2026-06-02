@@ -18,28 +18,37 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
 
-            // DITO ANG LOGIC PARA SA ROLES
             $user = Auth::user();
 
             if ($user->role === 'admin') {
                 return redirect()->intended('/admin/dashboard');
             } elseif ($user->role === 'teacher') {
                 return redirect()->intended('/teacher/dashboard');
-            } else {
-                return redirect()->intended('/dashboard'); // Para sa Student
+            } elseif ($user->role === 'student') {
+                return redirect()->intended('/student/dashboard');
             }
+
+            Auth::logout();
+
+            return back()->withErrors([
+                'email' => 'Your account role is not recognized.',
+            ]);
         }
 
-        return back()->withErrors(['email' => 'The provided credentials do not match our records.']);
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ]);
     }
 
     public function logout(Request $request) {
         Auth::logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/login');
     }
 }

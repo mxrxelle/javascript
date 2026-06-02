@@ -8,17 +8,29 @@
 </head>
 <body class="bg-light">
 
+@php
+    $user = Auth::user();
+    $userName = $user->name ?? 'Guest';
+    $userEmail = $user->email ?? 'No Email';
+@endphp
+
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
     <div class="container">
         <a class="navbar-brand fw-bold" href="#">SK360° PORTAL</a>
+
         <div class="d-flex align-items-center">
             <span class="navbar-text text-white me-3">
-                Hello, <strong>{{ Auth::user()->name }}</strong>
+                Hello, <strong>{{ $userName }}</strong>
             </span>
-            <form action="{{ route('logout') }}" method="POST" class="m-0">
-                @csrf
-                <button type="submit" class="btn btn-light btn-sm">Logout</button>
-            </form>
+
+            @auth
+                <form action="{{ route('logout') }}" method="POST" class="m-0">
+                    @csrf
+                    <button type="submit" class="btn btn-light btn-sm">Logout</button>
+                </form>
+            @else
+                <a href="{{ route('login') }}" class="btn btn-light btn-sm">Login</a>
+            @endauth
         </div>
     </div>
 </nav>
@@ -29,12 +41,15 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-body text-center">
                     <div class="mb-3">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=0D6EFD&color=fff" 
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($userName) }}&background=0D6EFD&color=fff"
                              class="rounded-circle" alt="Profile">
                     </div>
-                    <h5>{{ Auth::user()->name }}</h5>
-                    <p class="text-muted small">{{ Auth::user()->email }}</p>
+
+                    <h5>{{ $userName }}</h5>
+                    <p class="text-muted small">{{ $userEmail }}</p>
+
                     <hr>
+
                     <p class="badge bg-primary">Student Account</p>
                 </div>
             </div>
@@ -45,19 +60,26 @@
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Account Overview</h5>
                 </div>
+
                 <div class="card-body">
-                    <div class="alert alert-success">
-                        <strong>Login Success!</strong> Your authentication logic is working perfectly.
-                    </div>
-                    
+                    @auth
+                        <div class="alert alert-success">
+                            <strong>Login Success!</strong> Your authentication logic is working perfectly.
+                        </div>
+                    @else
+                        <div class="alert alert-warning">
+                            <strong>Guest Mode:</strong> You are viewing this page without being logged in.
+                        </div>
+                    @endauth
+
                     <table class="table table-borderless">
                         <tr>
                             <td class="text-muted" style="width: 30%;">Full Name:</td>
-                            <td><strong>{{ Auth::user()->name }}</strong></td>
+                            <td><strong>{{ $userName }}</strong></td>
                         </tr>
                         <tr>
                             <td class="text-muted">Email Address:</td>
-                            <td>{{ Auth::user()->email }}</td>
+                            <td>{{ $userEmail }}</td>
                         </tr>
                         <tr>
                             <td class="text-muted">User Role:</td>
@@ -69,7 +91,9 @@
 
             <div class="mt-4 p-3 bg-white border rounded shadow-sm">
                 <h6>Next Phase:</h6>
-                <p class="small text-muted mb-0">Ang susunod nating gagawin dito ay ang **Module System** at **Voucher Registration**.</p>
+                <p class="small text-muted mb-0">
+                    Ang susunod nating gagawin dito ay ang <strong>Module System</strong> at <strong>Voucher Registration</strong>.
+                </p>
             </div>
         </div>
     </div>

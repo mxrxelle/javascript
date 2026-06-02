@@ -5,12 +5,13 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\StudentController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 
 // Landing page redirection
 Route::get('/', function () {
-    return view('dashboard'); 
+    return redirect('/login');
 });
 
 // Registration Routes
@@ -29,7 +30,16 @@ Route::get('/email/verify', function () {
 
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();
-    return redirect('/dashboard');
+
+    if ($request->user()->role === 'admin') {
+        return redirect('/admin/dashboard');
+    }
+
+    if ($request->user()->role === 'teacher') {
+        return redirect('/teacher/dashboard');
+    }
+
+    return redirect('/student/dashboard');
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
 Route::post('/email/verification-notification', function (Request $request) {
@@ -38,39 +48,48 @@ Route::post('/email/verification-notification', function (Request $request) {
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 
-// Dashboards (Protected by Auth and Roles)
+// Dashboards Protected by Auth and Roles
 Route::middleware(['auth'])->group(function () {
-    
-    // 1. Student Dashboard
+
+    // Student Dashboard
     Route::middleware(['role:student'])->group(function () {
-        Route::get('/dashboard', function () {
-            return view('dashboard');
-        })->name('dashboard');
+        Route::get('/student/dashboard', [StudentController::class, 'dashboard'])
+            ->name('student.dashboard');
+
+        Route::get('/student/courseviewer', [StudentController::class, 'courseViewer'])
+            ->name('student.courseviewer');
     });
 
-    // 2. Teacher Dashboard
+    // Teacher Dashboard
     Route::middleware(['role:teacher'])->group(function () {
-        Route::get('/teacher/dashboard', [TeacherController::class, 'index'])->name('teacher.dashboard');
+        Route::get('/teacher/dashboard', [TeacherController::class, 'index'])
+            ->name('teacher.dashboard');
     });
 
-    // 3. Admin Dashboard Group
+    // Admin Dashboard Group
     Route::middleware(['role:admin'])->group(function () {
-        // Main Dashboard View
-        Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
-        
-        // Route para sa Approvals Hub Page
-        Route::get('/admin/approvals', [AdminController::class, 'approvalsHub'])->name('admin.approvals');
-        
-        Route::get('/admin/users', [AdminController::class, 'userManagement'])->name('admin.users');
+        Route::get('/admin/dashboard', [AdminController::class, 'index'])
+            ->name('admin.dashboard');
 
-        // In-align natin ang URL endpoint para sumakma sa dashboard registration function
-        Route::get('/admin/facilitators', [AdminController::class, 'facilitatorManagement'])->name('admin.facilitators');
-        Route::post('/admin/store-teacher', [AdminController::class, 'storeTeacher'])->name('admin.storeTeacher');
+        Route::get('/admin/approvals', [AdminController::class, 'approvalsHub'])
+            ->name('admin.approvals');
 
-        Route::post('/admin/facilitators/{id}/resend', [AdminController::class, 'resendInvite'])->name('admin.facilitators.resend');
-        
-        Route::put('/admin/users/{id}', [AdminController::class, 'updateUser'])->name('admin.users.update');
-        Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+        Route::get('/admin/users', [AdminController::class, 'userManagement'])
+            ->name('admin.users');
+
+        Route::get('/admin/facilitators', [AdminController::class, 'facilitatorManagement'])
+            ->name('admin.facilitators');
+
+        Route::post('/admin/store-teacher', [AdminController::class, 'storeTeacher'])
+            ->name('admin.storeTeacher');
+
+        Route::post('/admin/facilitators/{id}/resend', [AdminController::class, 'resendInvite'])
+            ->name('admin.facilitators.resend');
+
+        Route::put('/admin/users/{id}', [AdminController::class, 'updateUser'])
+            ->name('admin.users.update');
+
+        Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser'])
+            ->name('admin.users.delete');
     });
-    
 });
