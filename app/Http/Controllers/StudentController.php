@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Course;
 use App\Models\CourseCode;
 use App\Models\StudentCourse;
 
@@ -47,8 +48,21 @@ class StudentController extends Controller
         return back()->with('success', 'Course activated successfully!');
     }
 
-    public function courseViewer()
+    public function courseViewer(Course $course)
     {
-        return view('student.courseviewer');
+        $isActivated = StudentCourse::where('user_id', Auth::id())
+            ->where('course_id', $course->id)
+            ->exists();
+
+        if (!$isActivated) {
+            return redirect()->route('student.dashboard')
+                ->with('error', 'You need to activate this course first.');
+        }
+
+        $course->load([
+            'modules.lessons'
+        ]);
+
+        return view('student.courseviewer', compact('course'));
     }
 }

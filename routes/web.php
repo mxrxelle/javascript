@@ -59,7 +59,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/student/activate-course', [StudentController::class, 'activateCourse'])
             ->name('student.activateCourse');
 
-        Route::get('/student/courseviewer', [StudentController::class, 'courseViewer'])
+        Route::get('/student/courseviewer/{course}', [StudentController::class, 'courseViewer'])
             ->name('student.courseviewer');
     });
 

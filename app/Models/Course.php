@@ -22,4 +22,10 @@ class Course extends Model
     {
         return $this->hasMany(StudentCourse::class);
     }
+    
+    public function modules()
+    {
+    return $this->hasMany(Module::class)
+                ->orderBy('sort_order');
+    }
 }

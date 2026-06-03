@@ -586,9 +586,9 @@
                                     <div class="progress-fill" style="width: {{ $studentCourse->progress }}%;"></div>
                                 </div>
 
-                                <a href="{{ route('student.courseviewer') }}" class="resume-btn">
-                                    Resume Learning
-                                </a>
+                                <a href="{{ route('student.courseviewer', $studentCourse->course->id) }}" class="resume-btn">
+    Resume Learning
+</a>
                             </div>
                         </div>
                     @endforeach
