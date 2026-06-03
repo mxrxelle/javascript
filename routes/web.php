@@ -63,10 +63,34 @@ Route::middleware(['auth'])->group(function () {
             ->name('student.courseviewer');
     });
 
-    // Teacher Dashboard
+    // Teacher Dashboard & Course Management
     Route::middleware(['role:teacher'])->group(function () {
         Route::get('/teacher/dashboard', [TeacherController::class, 'index'])
             ->name('teacher.dashboard');
+        
+        Route::get('/teacher/courses/create', [TeacherController::class, 'create'])
+            ->name('teacher.courses.create');
+            
+        Route::get('/teacher/courses/{course}/edit', [TeacherController::class, 'edit'])
+            ->name('teacher.courses.edit');
+            
+        Route::post('/teacher/courses/store', [TeacherController::class, 'store'])
+            ->name('teacher.courses.store');
+            
+        Route::post('/teacher/courses/upload', [TeacherController::class, 'upload'])
+            ->name('teacher.courses.upload');
+            
+        Route::post('/teacher/courses/{course}/toggle', [TeacherController::class, 'toggleStatus'])
+            ->name('teacher.courses.toggleStatus');
+            
+        Route::get('/teacher/courses/{course}/details', [TeacherController::class, 'showDetails'])
+            ->name('teacher.courses.details');
+
+        Route::get('/teacher/submissions', [TeacherController::class, 'submissions'])
+            ->name('teacher.submissions');
+
+        Route::get('/teacher/analytics', [TeacherController::class, 'analytics'])
+            ->name('teacher.analytics');
     });
 
     // Admin Dashboard Group
@@ -76,6 +100,12 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/admin/approvals', [AdminController::class, 'approvalsHub'])
             ->name('admin.approvals');
+
+        Route::post('/admin/courses/{id}/approve', [AdminController::class, 'approveCourse'])
+            ->name('admin.courses.approve');
+
+        Route::post('/admin/courses/{id}/reject', [AdminController::class, 'rejectCourse'])
+            ->name('admin.courses.reject');
 
         Route::get('/admin/users', [AdminController::class, 'userManagement'])
             ->name('admin.users');

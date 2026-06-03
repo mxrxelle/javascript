@@ -24,7 +24,12 @@ class AdminController extends Controller
             ->take(5)
             ->get();
 
-        return view('admin.dashboard', compact('teachers', 'students', 'recentInvitations'));
+        $pendingCourses = \App\Models\Course::with('user')
+            ->where('status', 'pending')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.dashboard', compact('teachers', 'students', 'recentInvitations', 'pendingCourses'));
     }
 
     /**
@@ -193,9 +198,44 @@ class AdminController extends Controller
     {
         $teachers = User::where('role', 'teacher')->get();
         $students = User::where('role', 'student')->get();
-        $pendingCourses = collect([]); 
+        $pendingCourses = \App\Models\Course::with('user')
+            ->where('status', 'pending')
+            ->orderBy('created_at', 'desc')
+            ->get(); 
 
         return view('admin.approvals', compact('teachers', 'students', 'pendingCourses'));
+    }
+
+    /**
+     * Approve a pending course.
+     */
+    public function approveCourse(Request $request, $id)
+    {
+        $course = \App\Models\Course::findOrFail($id);
+        $course->update([
+            'status' => 'approved',
+            'approved_at' => now(),
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('admin.approvals')
+            ->with('success', "Course \"{$course->title}\" has been approved successfully!");
+    }
+
+    /**
+     * Reject and return a pending course with feedback.
+     */
+    public function rejectCourse(Request $request, $id)
+    {
+        $course = \App\Models\Course::findOrFail($id);
+        
+        $course->update([
+            'status' => 'returned',
+            'admin_feedback' => $request->input('feedback') ?? 'No feedback provided.',
+        ]);
+
+        return redirect()->route('admin.approvals')
+            ->with('warning', "Course \"{$course->title}\" has been returned to the facilitator.");
     }
 
     /**

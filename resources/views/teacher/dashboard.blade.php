@@ -36,6 +36,23 @@
         .card-shadow {
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
+
+        /* Dropdown custom style */
+        .actions-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            z-index: 50;
+            background: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            width: 160px;
+        }
+        .actions-dropdown.show {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -61,25 +78,25 @@
             <!-- Navigation -->
             <nav class="space-y-3">
 
-                <button class="sidebar-active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left">
+                <a href="{{ route('teacher.dashboard') }}" class="sidebar-active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left no-underline block">
                     <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                     <span>Dashboard</span>
-                </button>
+                </a>
 
-                <button class="hover:bg-[#003b73] w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left">
+                <a href="{{ route('teacher.courses.create') }}" class="text-gray-300 hover:bg-[#003b73] hover:text-white w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left no-underline block">
                     <i data-lucide="plus" class="w-5 h-5"></i>
                     <span>Create Course</span>
-                </button>
+                </a>
 
-                <button class="hover:bg-[#003b73] w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left">
+                <a href="#submissions-section" onclick="scrollToSection('submissions-section')" class="text-gray-300 hover:bg-[#003b73] hover:text-white w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left no-underline block">
                     <i data-lucide="file-text" class="w-5 h-5"></i>
                     <span>My Submissions</span>
-                </button>
+                </a>
 
-                <button class="hover:bg-[#003b73] w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left">
+                <a href="#students-section" onclick="scrollToSection('students-section')" class="text-gray-300 hover:bg-[#003b73] hover:text-white w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left no-underline block">
                     <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
                     <span>User Analytics</span>
-                </button>
+                </a>
 
             </nav>
 
@@ -90,7 +107,7 @@
             <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
                 @csrf
             </form>
-            <button onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="w-full hover:bg-[#003b73] flex items-center gap-3 px-4 py-3 rounded-lg transition text-left">
+            <button onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="w-full text-gray-300 hover:bg-[#003b73] hover:text-white flex items-center gap-3 px-4 py-3 rounded-lg transition text-left">
                 <i data-lucide="log-out" class="w-5 h-5"></i>
                 <span>Log Out</span>
             </button>
@@ -102,6 +119,21 @@
     <main class="flex-1 overflow-y-auto">
 
         <div class="max-w-7xl mx-auto p-8">
+
+            <!-- Alert messages -->
+            @if(session('success'))
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl mb-6 flex justify-between items-center card-shadow" role="alert">
+                    <span class="font-medium">{{ session('success') }}</span>
+                    <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900 font-bold">&times;</button>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-6 flex justify-between items-center card-shadow" role="alert">
+                    <span class="font-medium">{{ session('error') }}</span>
+                    <button onclick="this.parentElement.remove()" class="text-red-700 hover:text-red-900 font-bold">&times;</button>
+                </div>
+            @endif
 
             <!-- Heading -->
             <div class="mb-8">
@@ -117,8 +149,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
                 <!-- Create Course -->
-                <button class="bg-[#ffca28] p-6 rounded-xl card-shadow flex items-center gap-4 hover:opacity-95 transition">
-
+                <a href="{{ route('teacher.courses.create') }}" class="bg-[#ffca28] p-6 rounded-xl card-shadow flex items-center gap-4 hover:opacity-95 transition no-underline block">
                     <div class="w-12 h-12 bg-[#002855] rounded-lg flex items-center justify-center">
                         <i data-lucide="plus" class="w-6 h-6 text-white"></i>
                     </div>
@@ -132,12 +163,10 @@
                             Design and submit a new course for approval
                         </div>
                     </div>
-
-                </button>
+                </a>
 
                 <!-- Draft Submissions -->
-                <button class="bg-white p-6 rounded-xl card-shadow flex items-center gap-4 hover:bg-gray-50 transition">
-
+                <a href="#submissions-section" onclick="scrollToSection('submissions-section')" class="bg-white p-6 rounded-xl card-shadow flex items-center gap-4 hover:bg-gray-50 transition no-underline block">
                     <div class="w-12 h-12 bg-[#002855] rounded-lg flex items-center justify-center">
                         <i data-lucide="file-text" class="w-6 h-6 text-white"></i>
                     </div>
@@ -151,13 +180,12 @@
                             View and edit your draft courses
                         </div>
                     </div>
-
-                </button>
+                </a>
 
             </div>
 
             <!-- Registered Students List -->
-            <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+            <div id="students-section" class="bg-white rounded-xl card-shadow p-6 mb-8">
 
                 <h2 class="text-2xl font-semibold text-[#002855] mb-6 flex items-center gap-2">
                     <i data-lucide="users" class="w-6 h-6 text-[#002855]"></i>
@@ -193,6 +221,14 @@
                         <tbody>
 
                         @forelse($students as $student)
+                        @php
+                            $badgeClass = match($student->affiliation) {
+                                'NU Lipa' => 'bg-blue-100 text-[#002855]',
+                                'NU' => 'bg-[#e0f2fe] text-[#0369a1]',
+                                'Student' => 'bg-[#cbd5e1] text-[#1e293b]',
+                                default => 'bg-gray-200 text-gray-700'
+                            };
+                        @endphp
                         <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
 
                             <td class="py-4 px-4 font-semibold text-gray-800">
@@ -204,8 +240,8 @@
                             </td>
 
                             <td class="py-4 px-4">
-                                <span class="bg-blue-100 text-[#002855] px-3 py-1 rounded-full text-sm font-semibold">
-                                    {{ $student->affiliation ?? 'N/A' }}
+                                <span class="{{ $badgeClass }} px-3 py-1 rounded-full text-sm font-semibold">
+                                    {{ $student->affiliation ?? 'Student' }}
                                 </span>
                             </td>
 
@@ -269,101 +305,60 @@
 
                         <tbody>
 
-                        <!-- Row 1 -->
+                        @forelse($approvedCourses as $course)
                         <tr class="border-b hover:bg-gray-50 transition">
 
-                            <td class="py-4 px-4">
-                                Advanced Cybersecurity
+                            <td class="py-4 px-4 font-semibold text-gray-800">
+                                {{ $course->title }}
                             </td>
 
                             <td class="py-4 px-4 text-gray-500">
-                                2026-04-15
+                                {{ $course->approved_at ? \Carbon\Carbon::parse($course->approved_at)->format('Y-m-d') : 'N/A' }}
                             </td>
 
                             <td class="py-4 px-4">
-                                <span class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-semibold">
-                                    Active
-                                </span>
+                                @if($course->is_active)
+                                    <span class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-semibold">
+                                        Active
+                                    </span>
+                                @else
+                                    <span class="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
+                                        Inactive
+                                    </span>
+                                @endif
                             </td>
 
                             <td class="py-4 px-4">
-                                234
+                                {{ $course->active_enrollments ?? 0 }}
                             </td>
 
-                            <td class="py-4 px-4">
-
-                                <button class="primary-btn text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                            <td class="py-4 px-4 relative">
+                                <button onclick="toggleDropdown(event, {{ $course->id }})" class="primary-btn text-white px-4 py-2 rounded-lg flex items-center gap-2 transition">
                                     Actions
                                     <i data-lucide="chevron-down" class="w-4 h-4"></i>
                                 </button>
-
+                                
+                                <div id="dropdown-{{ $course->id }}" class="actions-dropdown">
+                                    <button onclick="viewCourseDetails({{ $course->id }})" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-[#002855] font-medium text-sm border-b">
+                                        View Details
+                                    </button>
+                                    <form action="{{ route('teacher.courses.toggleStatus', $course->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm font-medium">
+                                            {{ $course->is_active ? 'Deactivate' : 'Activate' }}
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
 
                         </tr>
-
-                        <!-- Row 2 -->
-                        <tr class="border-b hover:bg-gray-50 transition">
-
-                            <td class="py-4 px-4">
-                                Cloud Computing Fundamentals
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-8 text-gray-500">
+                                No approved courses yet.
                             </td>
-
-                            <td class="py-4 px-4 text-gray-500">
-                                2026-03-22
-                            </td>
-
-                            <td class="py-4 px-4">
-                                <span class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-semibold">
-                                    Active
-                                </span>
-                            </td>
-
-                            <td class="py-4 px-4">
-                                187
-                            </td>
-
-                            <td class="py-4 px-4">
-
-                                <button class="primary-btn text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                                    Actions
-                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                                </button>
-
-                            </td>
-
                         </tr>
-
-                        <!-- Row 3 -->
-                        <tr class="hover:bg-gray-50 transition">
-
-                            <td class="py-4 px-4">
-                                Data Analytics with Python
-                            </td>
-
-                            <td class="py-4 px-4 text-gray-500">
-                                2026-02-10
-                            </td>
-
-                            <td class="py-4 px-4">
-                                <span class="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-sm font-semibold">
-                                    Inactive
-                                </span>
-                            </td>
-
-                            <td class="py-4 px-4">
-                                145
-                            </td>
-
-                            <td class="py-4 px-4">
-
-                                <button class="primary-btn text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                                    Actions
-                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                                </button>
-
-                            </td>
-
-                        </tr>
+                        @endforelse
 
                         </tbody>
 
@@ -374,7 +369,7 @@
             </div>
 
             <!-- Submissions -->
-            <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+            <div id="submissions-section" class="bg-white rounded-xl card-shadow p-6 mb-8">
 
                 <h2 class="text-2xl font-semibold text-[#002855] mb-6">
                     My Submissions for Approval
@@ -382,66 +377,60 @@
 
                 <div class="space-y-4">
 
-                    <!-- Submission 1 -->
-                    <div class="flex items-center justify-between p-4 bg-gray-100 rounded-lg">
+                    @forelse($submissions as $sub)
+                    @php
+                        $badgeClass = match($sub->status) {
+                            'pending' => 'bg-amber-100 text-amber-700',
+                            'returned' => 'bg-red-100 text-red-600',
+                            'draft' => 'bg-gray-100 text-gray-600',
+                            default => 'bg-gray-100 text-gray-600'
+                        };
+                    @endphp
+                    <div class="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition rounded-lg border border-gray-100">
 
                         <div>
                             <h3 class="text-lg font-semibold text-[#002855]">
-                                Machine Learning Basics
+                                {{ $sub->title }}
                             </h3>
 
                             <p class="text-sm text-gray-500">
-                                Submitted on 2026-05-10
+                                @if($sub->status === 'draft')
+                                    Last saved on {{ $sub->updated_at->format('Y-m-d') }}
+                                @else
+                                    Submitted on {{ $sub->updated_at->format('Y-m-d') }}
+                                @endif
                             </p>
                         </div>
 
                         <div class="flex items-center gap-4">
 
-                            <span class="bg-amber-100 text-amber-700 px-4 py-2 rounded-full text-sm font-semibold">
-                                Pending
+                            <span class="{{ $badgeClass }} px-4 py-2 rounded-full text-sm font-semibold capitalize">
+                                {{ $sub->status }}
                             </span>
 
-                            <button class="primary-btn text-white px-4 py-2 rounded-lg">
+                            @if($sub->status === 'draft' || $sub->status === 'returned')
+                                <a href="{{ route('teacher.courses.edit', $sub->id) }}" class="bg-[#ffca28] hover:opacity-90 text-[#002855] font-bold px-4 py-2 rounded-lg no-underline text-sm block">
+                                    Edit Course
+                                </a>
+                            @endif
+
+                            <button onclick="viewCourseDetails({{ $sub->id }})" class="primary-btn text-white px-4 py-2 rounded-lg text-sm transition">
                                 View Details
                             </button>
 
                         </div>
 
                     </div>
-
-                    <!-- Submission 2 -->
-                    <div class="flex items-center justify-between p-4 bg-gray-100 rounded-lg">
-
-                        <div>
-                            <h3 class="text-lg font-semibold text-[#002855]">
-                                DevOps Essentials
-                            </h3>
-
-                            <p class="text-sm text-gray-500">
-                                Submitted on 2026-05-05
-                            </p>
-                        </div>
-
-                        <div class="flex items-center gap-4">
-
-                            <span class="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm font-semibold">
-                                Returned
-                            </span>
-
-                            <button class="primary-btn text-white px-4 py-2 rounded-lg">
-                                View Details
-                            </button>
-
-                        </div>
-
-                    </div>
+                    @empty
+                    <p class="text-gray-500 text-center py-4">No submissions or drafts at the moment.</p>
+                    @endforelse
 
                 </div>
 
             </div>
 
             <!-- Statistics -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div id="analytics-section" class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                 <!-- Card 1 -->
                 <div class="bg-[#002855] text-white p-6 rounded-xl card-shadow">
@@ -451,7 +440,7 @@
                     </div>
 
                     <div class="text-4xl font-bold mb-2">
-                        {{ $students->count() }}
+                        {{ $totalStudentsCount }}
                     </div>
 
                     <div class="text-sm opacity-80">
@@ -485,7 +474,7 @@
                     </div>
 
                     <div class="text-4xl font-bold mb-2">
-                        1
+                        {{ $pendingApprovalsCount }}
                     </div>
 
                     <div class="text-sm opacity-80">
@@ -502,8 +491,204 @@
 
 </div>
 
+<!-- Details Modal -->
+<div id="detailsModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeDetailsModal()"></div>
+
+        <!-- Center modal content -->
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        
+        <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200">
+            <div class="bg-white px-6 pt-6 pb-4 sm:p-8 sm:pb-4">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-2xl font-bold text-[#002855]" id="modal-course-title">
+                        Course Title
+                    </h3>
+                    <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-light">&times;</button>
+                </div>
+                
+                <div class="mb-4">
+                    <span id="modal-course-category" class="bg-blue-100 text-[#002855] px-3 py-1 rounded-full text-xs font-semibold">
+                        Category
+                    </span>
+                    <span id="modal-course-status" class="ml-2 px-3 py-1 rounded-full text-xs font-semibold capitalize">
+                        Status
+                    </span>
+                </div>
+
+                <p id="modal-course-description" class="text-gray-600 mb-6 text-sm leading-relaxed">
+                    Description...
+                </p>
+
+                <!-- Feedback alert box if returned -->
+                <div id="modal-feedback-box" class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg hidden">
+                    <h5 class="text-red-800 font-bold text-sm mb-1">Feedback from Administrator:</h5>
+                    <p id="modal-feedback-text" class="text-red-700 text-sm">Comments here...</p>
+                </div>
+
+                <h4 class="font-bold text-[#002855] border-b pb-2 mb-3 text-lg">Course Structure</h4>
+                <div id="modal-course-structure" class="space-y-4 max-h-60 overflow-y-auto pr-2">
+                    <!-- Modules tree outline -->
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 px-6 py-4 sm:px-8 sm:flex sm:flex-row-reverse gap-3">
+                <button type="button" onclick="closeDetailsModal()" class="w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-5 py-2.5 bg-white text-base font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm">
+                    Close
+                </button>
+                <a id="modal-edit-btn" href="#" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-5 py-2.5 bg-[#ffca28] text-base font-semibold text-[#002855] hover:opacity-90 focus:outline-none sm:w-auto sm:text-sm hidden no-underline">
+                    Edit Course
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     lucide.createIcons();
+
+    // Scroll to section script
+    function scrollToSection(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    // Toggle dropdown menus
+    let openDropdownId = null;
+    function toggleDropdown(event, courseId) {
+        event.stopPropagation();
+        const currentDropdown = document.getElementById('dropdown-' + courseId);
+        
+        // Close other dropdown
+        if (openDropdownId && openDropdownId !== courseId) {
+            const other = document.getElementById('dropdown-' + openDropdownId);
+            if (other) other.classList.remove('show');
+        }
+        
+        if (currentDropdown) {
+            currentDropdown.classList.toggle('show');
+            openDropdownId = currentDropdown.classList.contains('show') ? courseId : null;
+        }
+    }
+
+    // Close dropdown on click outside
+    window.addEventListener('click', function() {
+        if (openDropdownId) {
+            const other = document.getElementById('dropdown-' + openDropdownId);
+            if (other) {
+                other.classList.remove('show');
+                openDropdownId = null;
+            }
+        }
+    });
+
+    // Details Modal functions
+    const detailsModal = document.getElementById('detailsModal');
+    const modalTitle = document.getElementById('modal-course-title');
+    const modalCategory = document.getElementById('modal-course-category');
+    const modalStatus = document.getElementById('modal-course-status');
+    const modalDesc = document.getElementById('modal-course-description');
+    const modalFeedbackBox = document.getElementById('modal-feedback-box');
+    const modalFeedbackText = document.getElementById('modal-feedback-text');
+    const modalStructure = document.getElementById('modal-course-structure');
+    const modalEditBtn = document.getElementById('modal-edit-btn');
+
+    function viewCourseDetails(courseId) {
+        fetch(`/teacher/courses/${courseId}/details`)
+            .then(res => res.json())
+            .then(data => {
+                const course = data.course;
+                modalTitle.textContent = course.title;
+                modalCategory.textContent = course.category || 'General';
+                modalDesc.textContent = course.description || 'No description provided.';
+                
+                // Status badge styling
+                modalStatus.textContent = course.status;
+                modalStatus.className = 'ml-2 px-3 py-1 rounded-full text-xs font-semibold capitalize ';
+                if (course.status === 'approved') {
+                    modalStatus.className += 'bg-green-100 text-green-700';
+                } else if (course.status === 'pending') {
+                    modalStatus.className += 'bg-amber-100 text-amber-700';
+                } else if (course.status === 'returned') {
+                    modalStatus.className += 'bg-red-100 text-red-700';
+                } else {
+                    modalStatus.className += 'bg-gray-100 text-gray-700';
+                }
+
+                // Feedback box
+                if (course.status === 'returned' && course.admin_feedback) {
+                    modalFeedbackText.textContent = course.admin_feedback;
+                    modalFeedbackBox.classList.remove('hidden');
+                } else {
+                    modalFeedbackBox.classList.add('hidden');
+                }
+
+                // Edit button for drafts/returned
+                if (course.status === 'draft' || course.status === 'returned') {
+                    modalEditBtn.href = `/teacher/courses/${course.id}/edit`;
+                    modalEditBtn.classList.remove('hidden');
+                } else {
+                    modalEditBtn.classList.add('hidden');
+                }
+
+                // Render course modules list
+                let structureHtml = '';
+                if (course.modules && course.modules.length > 0) {
+                    course.modules.forEach(mod => {
+                        structureHtml += `
+                            <div class="border border-gray-100 p-3 rounded-lg bg-gray-50">
+                                <div class="font-bold text-[#002855] text-sm">
+                                    Module ${mod.sort_order}: ${mod.title}
+                                </div>
+                        `;
+                        if (mod.lessons && mod.lessons.length > 0) {
+                            structureHtml += `<ul class="mt-2 space-y-1.5 pl-4">`;
+                            mod.lessons.forEach(les => {
+                                let typeIcon = '📄';
+                                if (les.type === 'video') typeIcon = '🎥 Video';
+                                else if (les.type === 'presentation') typeIcon = '▣ Slides';
+                                else if (les.type === 'quiz') typeIcon = '❓ Quiz';
+                                
+                                structureHtml += `
+                                    <li class="text-xs text-gray-600 flex justify-between">
+                                        <span>${typeIcon}: ${les.title}</span>
+                                        ${les.type === 'presentation' && les.presentation_path ? `<span class="text-gray-400 font-mono text-[10px]">${les.presentation_size || ''}</span>` : ''}
+                                        ${les.type === 'quiz' ? `<span class="text-sky-600 font-semibold text-[10px]">${les.quiz_questions_count} Pool Qs</span>` : ''}
+                                    </li>
+                                `;
+                            });
+                            structureHtml += `</ul>`;
+                        } else {
+                            structureHtml += `<p class="text-xs text-gray-400 italic mt-1 pl-4">No content inside this module.</p>`;
+                        }
+                        structureHtml += `</div>`;
+                    });
+                } else {
+                    structureHtml = `<p class="text-sm text-gray-500 italic text-center py-4">No modules built for this course.</p>`;
+                }
+                modalStructure.innerHTML = structureHtml;
+
+                // Show modal
+                detailsModal.classList.remove('hidden');
+            });
+    }
+
+    function closeDetailsModal() {
+        detailsModal.classList.add('hidden');
+    }
+
+    // Scroll to sections on load if set by flash session
+    @if(session('scroll_to'))
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                scrollToSection("{{ session('scroll_to') }}-section");
+            }, 300);
+        });
+    @endif
 </script>
 
 </body>

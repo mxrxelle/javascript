@@ -11,7 +11,17 @@ class Course extends Model
         'description',
         'thumbnail',
         'category',
+        'user_id',
+        'status',
+        'approved_at',
+        'is_active',
+        'admin_feedback',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function codes()
     {
@@ -25,7 +35,7 @@ class Course extends Model
     
     public function modules()
     {
-    return $this->hasMany(Module::class)
-                ->orderBy('sort_order');
+        return $this->hasMany(Module::class)
+                    ->orderBy('sort_order');
     }
 }

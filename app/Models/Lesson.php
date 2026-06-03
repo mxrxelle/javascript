@@ -12,7 +12,10 @@ class Lesson extends Model
         'type',
         'content',
         'youtube_url',
-        'sort_order'
+        'sort_order',
+        'presentation_path',
+        'presentation_size',
+        'quiz_questions_count',
     ];
 
     public function module()
@@ -23,5 +26,10 @@ class Lesson extends Model
     public function progress()
     {
         return $this->hasMany(StudentLessonProgress::class);
+    }
+
+    public function questions()
+    {
+        return $this->hasMany(Question::class);
     }
 }

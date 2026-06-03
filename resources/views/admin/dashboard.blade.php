@@ -174,11 +174,24 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-5 fs-5">
-                                    No pending course approvals at the moment.
-                                </td>
-                            </tr>
+                            @forelse($pendingCourses as $course)
+                                <tr>
+                                    <td class="py-3 text-dark fw-medium">{{ $course->title }}</td>
+                                    <td class="text-muted">{{ $course->user->name ?? 'Unknown Facilitator' }}</td>
+                                    <td class="text-muted">{{ $course->created_at->format('M d, Y') }}</td>
+                                    <td>
+                                        <a href="{{ route('admin.approvals') }}" class="btn btn-warning btn-sm fw-bold px-3 text-dark" style="background-color: #ffca28; border: none; border-radius: 6px;">
+                                            Review
+                                        </a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-5 fs-5">
+                                        No pending course approvals at the moment.
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
