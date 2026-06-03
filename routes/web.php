@@ -56,6 +56,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/student/dashboard', [StudentController::class, 'dashboard'])
             ->name('student.dashboard');
 
+        Route::post('/student/activate-course', [StudentController::class, 'activateCourse'])
+            ->name('student.activateCourse');
+
         Route::get('/student/courseviewer', [StudentController::class, 'courseViewer'])
             ->name('student.courseviewer');
     });

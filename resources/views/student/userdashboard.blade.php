@@ -7,8 +7,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-    <style>
+<style>
         * {
             margin: 0;
             padding: 0;
@@ -488,179 +487,203 @@
 </head>
 <body>
 
-    <nav class="navbar">
-        <div class="logo">
-            <div class="logo-box">C</div>
-            <span>Certly</span>
-        </div>
+@php
+    $user = Auth::user();
+    $userName = $user->name ?? 'Student';
+@endphp
 
-        <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Search courses...">
-        </div>
-
-        <div class="nav-links">
-            <a href="#">My Courses</a>
-            <a href="#">Catalog</a>
-        </div>
-
-        <div class="nav-right">
-            <div class="profile-btn">
-                <i class="fa-regular fa-user"></i>
-            </div>
-
-            <button type="button" class="logout" id="openLogoutModal">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                Log Out
-            </button>
-        </div>
-    </nav>
-
-    <main class="container">
-        <div class="layout">
-            <div>
-                <h1>Welcome back, a!</h1>
-
-                <section class="card activate-card">
-                    <h2>Activate a Course</h2>
-                    <p>Enter your voucher code to unlock a new course</p>
-
-                    <form class="activate-form">
-                        <input type="text" placeholder="Enter Voucher Code">
-                        <button type="submit">Activate</button>
-                    </form>
-                </section>
-
-                <h2 class="section-title">My Learning</h2>
-
-                <section class="courses">
-                    <div class="card course-card">
-                        <div class="course-img">🔒</div>
-                        <div class="course-body">
-                            <h3>Intro to Cybersecurity</h3>
-                            <p>Learn the fundamentals of cybersecurity and protect digital assets</p>
-
-                            <div class="progress-info">
-                                <span>Progress</span>
-                                <span>65%</span>
-                            </div>
-
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 65%;"></div>
-                            </div>
-
-                            <a href="/courseviewer" class="resume-btn">Resume Learning</a>
-                        </div>
-                    </div>
-
-                    <div class="card course-card">
-                        <div class="course-img">🌐</div>
-                        <div class="course-body">
-                            <h3>Web Development Fundamentals</h3>
-                            <p>Build modern websites with HTML, CSS, and JavaScript</p>
-
-                            <div class="progress-info">
-                                <span>Progress</span>
-                                <span>30%</span>
-                            </div>
-
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 30%;"></div>
-                            </div>
-
-                            <a href="/courseviewer" class="resume-btn">Resume Learning</a>
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            <aside class="sidebar">
-                <div class="card side-card">
-                    <h3>Latest Achievements</h3>
-
-                    <div class="achievement">
-                        <div class="achievement-icon">
-                            <i class="fa-solid fa-award"></i>
-                        </div>
-
-                        <div>
-                            <h4>Get Certified</h4>
-                            <p>Complete a course</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card side-card">
-                    <h3 class="announcement-title">
-                        <i class="fa-regular fa-bell"></i>
-                        Announcements
-                    </h3>
-
-                    <div class="announcement">
-                        <h4>New Courses Available</h4>
-                        <p>Check out our latest cybersecurity courses</p>
-                        <small>2 days ago</small>
-                    </div>
-
-                    <div class="announcement">
-                        <h4>Platform Update</h4>
-                        <p>New features and improvements are live</p>
-                        <small>1 week ago</small>
-                    </div>
-                </div>
-            </aside>
-        </div>
-    </main>
-
-    <div class="modal-overlay" id="logoutModal" aria-hidden="true">
-        <div class="logout-modal card" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
-            <div class="logout-modal-icon">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            </div>
-            <h2 id="logoutModalTitle">Log out of Certly?</h2>
-            <p>Your current session will end and you will be returned to the login page.</p>
-
-            <div class="modal-actions">
-                <button type="button" class="modal-btn cancel" id="closeLogoutModal">Stay Logged In</button>
-
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="modal-btn confirm">Yes, Log Out</button>
-                </form>
-            </div>
-        </div>
+<nav class="navbar">
+    <div class="logo">
+        <div class="logo-box">C</div>
+        <span>Certly</span>
     </div>
 
-    <script>
-        const openLogoutModalButton = document.getElementById('openLogoutModal');
-        const closeLogoutModalButton = document.getElementById('closeLogoutModal');
-        const logoutModal = document.getElementById('logoutModal');
+    <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search courses...">
+    </div>
 
-        const openLogoutModal = () => {
-            logoutModal.classList.add('active');
-            logoutModal.setAttribute('aria-hidden', 'false');
-        };
+    <div class="nav-links">
+        <a href="#">My Courses</a>
+        <a href="#">Catalog</a>
+    </div>
 
-        const closeLogoutModal = () => {
-            logoutModal.classList.remove('active');
-            logoutModal.setAttribute('aria-hidden', 'true');
-        };
+    <div class="nav-right">
+        <div class="profile-btn">
+            <i class="fa-regular fa-user"></i>
+        </div>
 
-        openLogoutModalButton.addEventListener('click', openLogoutModal);
-        closeLogoutModalButton.addEventListener('click', closeLogoutModal);
+        <button type="button" class="logout" id="openLogoutModal">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            Log Out
+        </button>
+    </div>
+</nav>
 
-        logoutModal.addEventListener('click', (event) => {
-            if (event.target === logoutModal) {
-                closeLogoutModal();
-            }
-        });
+<main class="container">
+    <div class="layout">
+        <div>
+            <h1>Welcome back, {{ $userName }}!</h1>
 
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && logoutModal.classList.contains('active')) {
-                closeLogoutModal();
-            }
-        });
-    </script>
+            @if (session('success'))
+                <div style="background:#d1e7dd;color:#0f5132;padding:18px 22px;border-radius:14px;margin-bottom:25px;font-size:20px;">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div style="background:#f8d7da;color:#842029;padding:18px 22px;border-radius:14px;margin-bottom:25px;font-size:20px;">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div style="background:#f8d7da;color:#842029;padding:18px 22px;border-radius:14px;margin-bottom:25px;font-size:20px;">
+                    @foreach ($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
+
+            <section class="card activate-card">
+                <h2>Activate a Course</h2>
+                <p>Enter your voucher code to unlock a new course</p>
+
+                <form class="activate-form" action="{{ route('student.activateCourse') }}" method="POST">
+                    @csrf
+                    <input type="text" name="code" placeholder="Enter Voucher Code" required>
+                    <button type="submit">Activate</button>
+                </form>
+            </section>
+
+            <h2 class="section-title">My Learning</h2>
+
+            <section class="courses">
+                @if ($studentCourses->isEmpty())
+                    <div class="card course-card" style="grid-column: 1 / -1; padding: 40px; text-align:center;">
+                        <h3>No activated courses yet</h3>
+                        <p style="font-size:20px;color:#555;margin-top:12px;">
+                            Enter a valid voucher code above to unlock your first course.
+                        </p>
+                    </div>
+                @else
+                    @foreach ($studentCourses as $studentCourse)
+                        <div class="card course-card">
+                            <div class="course-img">
+                                {{ $studentCourse->course->thumbnail ?? '📘' }}
+                            </div>
+
+                            <div class="course-body">
+                                <h3>{{ $studentCourse->course->title }}</h3>
+                                <p>{{ $studentCourse->course->description ?? 'No description available.' }}</p>
+
+                                <div class="progress-info">
+                                    <span>Progress</span>
+                                    <span>{{ $studentCourse->progress }}%</span>
+                                </div>
+
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {{ $studentCourse->progress }}%;"></div>
+                                </div>
+
+                                <a href="{{ route('student.courseviewer') }}" class="resume-btn">
+                                    Resume Learning
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                @endif
+            </section>
+        </div>
+
+        <aside class="sidebar">
+            <div class="card side-card">
+                <h3>Latest Achievements</h3>
+
+                <div class="achievement">
+                    <div class="achievement-icon">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+
+                    <div>
+                        <h4>Get Certified</h4>
+                        <p>Complete a course</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card side-card">
+                <h3 class="announcement-title">
+                    <i class="fa-regular fa-bell"></i>
+                    Announcements
+                </h3>
+
+                <div class="announcement">
+                    <h4>New Courses Available</h4>
+                    <p>Check out our latest cybersecurity courses</p>
+                    <small>2 days ago</small>
+                </div>
+
+                <div class="announcement">
+                    <h4>Platform Update</h4>
+                    <p>New features and improvements are live</p>
+                    <small>1 week ago</small>
+                </div>
+            </div>
+        </aside>
+    </div>
+</main>
+
+<div class="modal-overlay" id="logoutModal" aria-hidden="true">
+    <div class="logout-modal card" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
+        <div class="logout-modal-icon">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </div>
+
+        <h2 id="logoutModalTitle">Log out of Certly?</h2>
+        <p>Your current session will end and you will be returned to the login page.</p>
+
+        <div class="modal-actions">
+            <button type="button" class="modal-btn cancel" id="closeLogoutModal">Stay Logged In</button>
+
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="modal-btn confirm">Yes, Log Out</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const openLogoutModalButton = document.getElementById('openLogoutModal');
+    const closeLogoutModalButton = document.getElementById('closeLogoutModal');
+    const logoutModal = document.getElementById('logoutModal');
+
+    const openLogoutModal = () => {
+        logoutModal.classList.add('active');
+        logoutModal.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeLogoutModal = () => {
+        logoutModal.classList.remove('active');
+        logoutModal.setAttribute('aria-hidden', 'true');
+    };
+
+    openLogoutModalButton.addEventListener('click', openLogoutModal);
+    closeLogoutModalButton.addEventListener('click', closeLogoutModal);
+
+    logoutModal.addEventListener('click', (event) => {
+        if (event.target === logoutModal) {
+            closeLogoutModal();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && logoutModal.classList.contains('active')) {
+            closeLogoutModal();
+        }
+    });
+</script>
 
 </body>
 </html>
