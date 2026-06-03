@@ -162,28 +162,31 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Course 5: DevOps Essentials (Returned)
+        // Course 5: Advanced DevOps Infrastructure (Returned)
         Course::updateOrCreate(
-            ['title' => 'DevOps Essentials'],
+            ['title' => 'Advanced DevOps Infrastructure'],
             [
                 'description' => 'Understand CI/CD pipelines, Docker, Kubernetes, and Infrastructure as Code.',
                 'category' => 'Tech',
                 'user_id' => $teacher->id,
                 'status' => 'returned',
                 'created_at' => Carbon::parse('2026-05-05 14:00:00'),
+                'updated_at' => Carbon::parse('2026-05-05 14:00:00'),
                 'is_active' => true,
-                'admin_feedback' => 'Please provide more interactive exercises and ensure the final quiz contains at least 5 multiple-choice questions.',
+                'admin_feedback' => 'Please expand the quiz pool in Module 2 to include more foundational network architecture questions.',
             ]
         );
 
-        // 6. Create Draft Course: Advanced JavaScript Concepts
+        // 6. Create Draft Course: Introduction to AI Ethics
         $draftCourse = Course::updateOrCreate(
-            ['title' => 'Advanced JavaScript Concepts'],
+            ['title' => 'Introduction to AI Ethics'],
             [
-                'description' => 'Deep dive into asynchronous programming, closures, prototypes, and control flow in Modern ES6+.',
+                'description' => 'Overview of ethical concerns, alignment, bias, and fairness in machine learning algorithms.',
                 'category' => 'Tech',
                 'user_id' => $teacher->id,
                 'status' => 'draft',
+                'created_at' => Carbon::parse('2026-04-28 10:00:00'),
+                'updated_at' => Carbon::parse('2026-04-28 10:00:00'),
                 'is_active' => true,
             ]
         );

@@ -88,7 +88,7 @@
                     <span>Create Course</span>
                 </a>
 
-                <a href="#submissions-section" onclick="scrollToSection('submissions-section')" class="text-gray-300 hover:bg-[#003b73] hover:text-white w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left no-underline block">
+                <a href="{{ route('teacher.submissions') }}" class="text-gray-300 hover:bg-[#003b73] hover:text-white w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left no-underline block">
                     <i data-lucide="file-text" class="w-5 h-5"></i>
                     <span>My Submissions</span>
                 </a>

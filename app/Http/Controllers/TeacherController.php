@@ -384,12 +384,20 @@ class TeacherController extends Controller
         ]);
     }
 
-    /**
-     * Dummy redirect endpoints for sidebar consistency
-     */
     public function submissions()
     {
-        return redirect()->route('teacher.dashboard')->with('scroll_to', 'submissions');
+        $teacherId = Auth::id();
+
+        $all = Course::where('user_id', $teacherId)
+            ->whereIn('status', ['draft', 'pending', 'returned'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        $drafts = $all->where('status', 'draft');
+        $pending = $all->where('status', 'pending');
+        $returned = $all->where('status', 'returned');
+
+        return view('teacher.submissions', compact('all', 'drafts', 'pending', 'returned'));
     }
 
     public function analytics()
