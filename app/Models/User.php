@@ -19,6 +19,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'birthday',
         'affiliation',
         'contact_number',
+        'verification_code', // Sinama na natin ito para ma-save ang OTP sa database
     ];
 
     protected $hidden = [
