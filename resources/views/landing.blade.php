@@ -37,9 +37,7 @@
             <!-- Left Side -->
             <div class="flex items-center gap-8">
                 <div class="flex items-center gap-2">
-                    <div class="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-                        <span class="text-2xl text-primary">C</span>
-                    </div>
+                    <img src="{{ asset('images/certly-logo.png') }}" alt="Certly Logo" class="w-10 h-10 object-contain">
                     <span class="text-2xl text-primary" style="font-weight: 600;">Certly</span>
                 </div>
 
@@ -246,9 +244,7 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                 <div>
                     <div class="flex items-center gap-2 mb-4">
-                        <div class="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-                            <span class="text-2xl text-primary">C</span>
-                        </div>
+                        <img src="{{ asset('images/certly-logo.png') }}" alt="Certly Logo" class="w-10 h-10 object-contain">
                         <span class="text-2xl" style="font-weight: 600;">Certly</span>
                     </div>
                     <p class="text-white/70 leading-relaxed">Building skills for the future</p>
