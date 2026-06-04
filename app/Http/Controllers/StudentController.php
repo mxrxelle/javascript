@@ -14,6 +14,14 @@ use App\Models\QuizQuestion;
 use App\Models\QuizChoice;
 use App\Models\QuizAttempt;
 use App\Models\QuizAttemptQuestion;
+use App\Models\FinalExam;
+use App\Models\FinalExamAttempt;
+use App\Models\FinalExamAttemptAnswer;
+use App\Models\Certificate;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use App\Mail\CertificateIssued;
 
 class StudentController extends Controller
 {
@@ -22,11 +30,19 @@ class StudentController extends Controller
      */
     public function dashboard()
     {
+        $studentId = Auth::id();
+
         $studentCourses = StudentCourse::with('course')
-            ->where('user_id', Auth::id())
+            ->where('user_id', $studentId)
             ->get();
 
-        return view('student.userdashboard', compact('studentCourses'));
+        // Load earned certificates for this student
+        $certificates = Certificate::with('course')
+            ->where('student_id', $studentId)
+            ->orderBy('issued_at', 'desc')
+            ->get();
+
+        return view('student.userdashboard', compact('studentCourses', 'certificates'));
     }
 
     /**
@@ -148,7 +164,21 @@ class StudentController extends Controller
             }
         }
 
-        return view('student.courseviewer', compact('course', 'completedLessonIds', 'quizAttemptData'));
+        $studentCourse = StudentCourse::where('user_id', $studentId)
+            ->where('course_id', $course->id)
+            ->first();
+
+        // Pass final exam attempt state
+        $course->load('finalExam.questions.choices');
+        $finalExamAttempt = \App\Models\FinalExamAttempt::with('answers.question')->where('student_id', $studentId)
+            ->where('course_id', $course->id)
+            ->first();
+            
+        $certificate = \App\Models\Certificate::where('student_id', $studentId)
+            ->where('course_id', $course->id)
+            ->first();
+
+        return view('student.courseviewer', compact('course', 'completedLessonIds', 'quizAttemptData', 'studentCourse', 'finalExamAttempt', 'certificate'));
     }
 
     /**
@@ -363,5 +393,151 @@ class StudentController extends Controller
         StudentCourse::where('user_id', $studentId)
             ->where('course_id', $course->id)
             ->update(['progress' => $progressPercentage]);
+    }
+
+    /**
+     * Submit Final Exam (Only 1 attempt allowed). Grade, store, and issue certificate if passed.
+     */
+    public function submitFinalExam(Request $request, Course $course)
+    {
+        $request->validate([
+            'answers' => 'required|array',
+        ]);
+
+        $studentId = Auth::id();
+
+        // 1. Check if progress is 100%
+        $studentCourse = StudentCourse::where('user_id', $studentId)
+            ->where('course_id', $course->id)
+            ->first();
+
+        if (!$studentCourse || $studentCourse->progress < 100) {
+            return response()->json([
+                'success' => false,
+                'error' => 'You must complete all course modules before taking the final exam.'
+            ], 403);
+        }
+
+        // 1b. Check that ALL module quizzes have been passed
+        $course->load('modules.lessons');
+        $quizLessonIds = $course->modules->flatMap(fn($m) => $m->lessons->where('type', 'quiz')->pluck('id'));
+
+        $allQuizzesPassed = $quizLessonIds->every(function ($lid) use ($studentId) {
+            return QuizAttempt::where('student_id', $studentId)
+                ->where('lesson_id', $lid)
+                ->where('passed', true)
+                ->exists();
+        });
+
+        if (!$allQuizzesPassed) {
+            return response()->json([
+                'success' => false,
+                'error' => 'You must pass all module quizzes before taking the final exam.'
+            ], 403);
+        }
+
+        // 2. Check if already attempted
+        $existingAttempt = FinalExamAttempt::where('student_id', $studentId)
+            ->where('course_id', $course->id)
+            ->first();
+
+        if ($existingAttempt) {
+            return response()->json([
+                'success' => false,
+                'error' => 'You have already taken the final exam. Only 1 attempt is allowed.'
+            ], 403);
+        }
+
+        $finalExam = FinalExam::with('questions.choices')->where('course_id', $course->id)->first();
+        if (!$finalExam) {
+            return response()->json(['success' => false, 'error' => 'Final Exam not found.'], 404);
+        }
+
+        $submittedAnswers = $request->answers;
+        $correctCount = 0;
+        $feedback = [];
+
+        foreach ($finalExam->questions as $question) {
+            $correctChoice = $question->choices->firstWhere('is_correct', true);
+            $correctChoiceId = $correctChoice ? $correctChoice->id : null;
+            $submittedChoiceId = isset($submittedAnswers[$question->id]) ? (int) $submittedAnswers[$question->id] : null;
+
+            $isCorrect = ($correctChoiceId !== null && $submittedChoiceId === $correctChoiceId);
+            if ($isCorrect) $correctCount++;
+
+            $feedback[$question->id] = [
+                'is_correct' => $isCorrect,
+                'submitted_choice_id' => $submittedChoiceId,
+            ];
+        }
+
+        $totalQuestions = $finalExam->questions->count();
+        $percentage = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
+        $passed = ($percentage >= $finalExam->passing_score);
+
+        $attempt = FinalExamAttempt::create([
+            'student_id' => $studentId,
+            'course_id' => $course->id,
+            'score' => $percentage,
+            'passed' => $passed,
+            'correct_count' => $correctCount,
+            'submitted_at' => now(),
+        ]);
+
+        foreach ($feedback as $questionId => $fb) {
+            FinalExamAttemptAnswer::create([
+                'attempt_id' => $attempt->id,
+                'question_id' => $questionId,
+                'selected_choice_id' => $fb['submitted_choice_id'],
+                'is_correct' => $fb['is_correct'],
+            ]);
+        }
+
+        $certificateUid = null;
+
+        if ($passed) {
+            // Generate Certificate UID: CERTLY-YYYY-XXXXXXXX
+            $certificateUid = 'CERTLY-' . date('Y') . '-' . strtoupper(Str::random(8));
+
+            $certificate = Certificate::create([
+                'student_id' => $studentId,
+                'course_id' => $course->id,
+                'certificate_uid' => $certificateUid,
+                'file_path' => 'certificates/' . $certificateUid . '.pdf',
+                'issued_at' => now(),
+            ]);
+
+            // Generate PDF
+            $student = Auth::user();
+            $pdf = Pdf::loadView('pdf.certificate', [
+                'student' => $student,
+                'course' => $course,
+                'certificate' => $certificate,
+                'date' => now()->format('F j, Y')
+            ])->setPaper('a4', 'landscape');
+
+            $pdfPath = storage_path('app/public/certificates/' . $certificateUid . '.pdf');
+            if (!file_exists(storage_path('app/public/certificates'))) {
+                mkdir(storage_path('app/public/certificates'), 0755, true);
+            }
+            $pdf->save($pdfPath);
+
+            // Send Email (in background/sync depending on queue setup, we'll just send it sync here)
+            try {
+                Mail::to($student->email)->send(new CertificateIssued($student, $course, $certificate, $pdfPath));
+            } catch (\Exception $e) {
+                // Ignore mail error to not break the user flow, or log it
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'passed' => $passed,
+            'score' => $percentage,
+            'correct_count' => $correctCount,
+            'total' => $totalQuestions,
+            'passing_score' => $finalExam->passing_score,
+            'certificate_uid' => $certificateUid
+        ]);
     }
 }

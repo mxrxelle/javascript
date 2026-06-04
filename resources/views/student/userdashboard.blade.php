@@ -612,18 +612,40 @@
 
         <aside class="sidebar">
             <div class="card side-card">
-                <h3>Latest Achievements</h3>
+                <h3>My Certificates</h3>
 
-                <div class="achievement">
-                    <div class="achievement-icon">
-                        <i class="fa-solid fa-award"></i>
+                @if($certificates->isEmpty())
+                    <div class="achievement">
+                        <div class="achievement-icon">
+                            <i class="fa-solid fa-award"></i>
+                        </div>
+                        <div>
+                            <h4>Get Certified</h4>
+                            <p>Complete a course final exam to earn a certificate</p>
+                        </div>
                     </div>
-
-                    <div>
-                        <h4>Get Certified</h4>
-                        <p>Complete a course</p>
-                    </div>
-                </div>
+                @else
+                    @foreach($certificates as $cert)
+                        <div class="achievement" style="margin-bottom: 14px; flex-direction: column; align-items: flex-start; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 14px;">
+                                <div class="achievement-icon" style="background: #10b981; flex-shrink: 0;">
+                                    <i class="fa-solid fa-certificate" style="color: white;"></i>
+                                </div>
+                                <div>
+                                    <h4 style="font-size: 18px; margin-bottom: 4px;">{{ $cert->course->title ?? 'Course' }}</h4>
+                                    <p style="font-size: 14px; margin-bottom: 0;">Issued {{ $cert->issued_at->format('M j, Y') }}</p>
+                                </div>
+                            </div>
+                            <a href="/storage/certificates/{{ $cert->certificate_uid }}.pdf"
+                               target="_blank"
+                               style="display: inline-flex; align-items: center; gap: 8px; background: #00336b; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; transition: background 0.2s; width: 100%; justify-content: center;"
+                               onmouseover="this.style.background='#004080'" onmouseout="this.style.background='#00336b'">
+                                <i class="fa-solid fa-download"></i> Download Certificate
+                            </a>
+                            <div style="font-size: 12px; color: #999; font-family: monospace;">{{ $cert->certificate_uid }}</div>
+                        </div>
+                    @endforeach
+                @endif
             </div>
 
             <div class="card side-card">

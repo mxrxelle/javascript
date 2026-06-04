@@ -200,7 +200,11 @@ class AdminController extends Controller
     {
         $teachers = User::where('role', 'teacher')->get();
         $students = User::where('role', 'student')->get();
-        $pendingCourses = \App\Models\Course::with('user')
+        $pendingCourses = \App\Models\Course::with([
+            'user', 
+            'modules.lessons.questions.options',
+            'finalExam.questions.choices'
+        ])
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->get(); 

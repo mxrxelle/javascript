@@ -390,6 +390,208 @@
         .complete-btn { background: #f59e0b; color: white; }
         .complete-btn:hover { background: #d97706; }
         .complete-btn:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
+
+        /* ── Final Exam Sidebar Entry ─────────────────────────────────── */
+        .final-exam-card {
+            border: 2px solid #002244;
+            border-radius: 12px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #001a33, #002e5c);
+            margin-top: 4px;
+        }
+        .final-exam-card.locked-state {
+            border-color: #94a3b8;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        }
+        .final-exam-card.done-state {
+            border-color: #10b981;
+            background: linear-gradient(135deg, #064e3b, #065f46);
+        }
+        .final-exam-header {
+            width: 100%;
+            border: none;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.2s;
+            background: transparent;
+            color: #ffc32b;
+        }
+        .final-exam-card.locked-state .final-exam-header {
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+        .final-exam-card.done-state .final-exam-header {
+            color: #6ee7b7;
+        }
+        .final-exam-card:not(.locked-state):not(.done-state) .final-exam-header:hover {
+            background: rgba(255,255,255,0.06);
+        }
+        .final-exam-title-text { display: flex; align-items: center; gap: 10px; }
+        .fe-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+        .fe-badge-gold { background: #ffc32b; color: #002244; }
+        .fe-badge-gray { background: #94a3b8; color: white; }
+        .fe-badge-green { background: #10b981; color: white; }
+
+        /* ── Final Exam Main Content Panel ───────────────────────────── */
+        .final-exam-panel {
+            padding: 40px;
+            max-width: 860px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .fe-header-row {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .fe-icon-badge {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #002244, #003580);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            flex-shrink: 0;
+            box-shadow: 0 8px 20px rgba(0,34,68,0.25);
+        }
+        .fe-header-info h1 { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+        .fe-header-info p { font-size: 14px; color: #64748b; }
+
+        .fe-progress-bar-wrap {
+            background: #f1f5f9;
+            border-radius: 20px;
+            height: 10px;
+            margin-bottom: 6px;
+            overflow: hidden;
+        }
+        .fe-progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #002244, #0056b3);
+            border-radius: 20px;
+            transition: width 0.3s ease;
+        }
+        .fe-progress-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 24px;
+        }
+
+        /* FE Result box */
+        .fe-result-box {
+            text-align: center;
+            padding: 48px 40px;
+            border-radius: 20px;
+            border: 2px solid;
+        }
+        .fe-result-box.pass { border-color: #10b981; background: #ecfdf5; }
+        .fe-result-box.fail { border-color: #ef4444; background: #fef2f2; }
+        .fe-result-icon { font-size: 64px; display: block; margin-bottom: 16px; }
+        .fe-result-title { font-size: 30px; font-weight: 800; margin-bottom: 8px; }
+        .fe-result-title.pass { color: #065f46; }
+        .fe-result-title.fail { color: #991b1b; }
+        .fe-result-score { font-size: 56px; font-weight: 900; margin: 16px 0 4px; }
+        .fe-result-score.pass { color: #10b981; }
+        .fe-result-score.fail { color: #ef4444; }
+        .fe-result-desc { font-size: 15px; color: #475569; margin-bottom: 28px; line-height: 1.6; }
+
+        .fe-cert-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #002244, #003580);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(0,34,68,0.3);
+        }
+        .fe-cert-download:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,34,68,0.4); }
+
+        .fe-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .fe-stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        .fe-stat-label { font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-bottom: 6px; }
+        .fe-stat-value { font-size: 24px; font-weight: 800; color: #0f172a; }
+
+        /* Lock/Intro screens */
+        .fe-lock-screen, .fe-intro-screen {
+            text-align: center;
+            padding: 48px 40px;
+        }
+        .fe-lock-icon { font-size: 64px; display: block; margin-bottom: 20px; }
+        .fe-lock-title { font-size: 26px; font-weight: 800; color: #1e293b; margin-bottom: 12px; }
+        .fe-lock-desc { font-size: 15px; color: #64748b; line-height: 1.6; max-width: 420px; margin: 0 auto 24px; }
+        .fe-lock-progress-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .fe-start-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #002244, #003580);
+            color: white;
+            border: none;
+            padding: 16px 36px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(0,34,68,0.3);
+            margin-top: 24px;
+        }
+        .fe-start-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,34,68,0.4); }
+        .fe-submit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .fe-submit-btn:hover { background: #059669; }
+        .fe-submit-btn:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -625,9 +827,55 @@
         @empty
             <p style="padding: 16px; color: #64748b; font-size: 14px;">No content available yet.</p>
         @endforelse
+
+        {{-- ── Final Exam Sidebar Entry ── --}}
+        @php
+            $hasFinalExam = $course->finalExam !== null;
+            $feAttempted  = $finalExamAttempt !== null;
+            $fePassed     = $feAttempted && $finalExamAttempt->passed;
+            $courseProgress = $studentCourse->progress ?? 0;
+
+            // Collect all quiz lesson IDs across modules
+            $quizLessonIds = $course->modules->flatMap(fn($m) => $m->lessons->where('type', 'quiz')->pluck('id'));
+
+            // All quizzes must have been passed at least once
+            $allQuizzesPassed = $quizLessonIds->every(function ($lid) use ($quizAttemptData) {
+                return !empty($quizAttemptData[$lid]['ever_passed']) && $quizAttemptData[$lid]['ever_passed'] === true;
+            });
+
+            // Unlock only when: 100% progress AND all quizzes passed
+            $feUnlocked = ($courseProgress >= 100) && $allQuizzesPassed;
+
+            // Count how many quizzes remain to be passed
+            $quizTotal  = $quizLessonIds->count();
+            $quizPassed = $quizLessonIds->filter(fn($lid) => !empty($quizAttemptData[$lid]['ever_passed']) && $quizAttemptData[$lid]['ever_passed'] === true)->count();
+        @endphp
+
+        @if ($hasFinalExam)
+            <div class="final-exam-card {{ !$feUnlocked ? 'locked-state' : ($fePassed ? 'done-state' : '') }}"
+                 id="final-exam-sidebar-card">
+                <button class="final-exam-header"
+                        onclick="{{ $feUnlocked ? 'selectFinalExam()' : 'return false;' }}"
+                        {{ !$feUnlocked ? 'disabled' : '' }}
+                        id="final-exam-sidebar-btn">
+                    <span class="final-exam-title-text">
+                        <span style="font-size:20px;">{{ $fePassed ? '🏆' : ($feUnlocked ? '📋' : '🔒') }}</span>
+                        <span>Final Course Exam</span>
+                    </span>
+                    <span class="fe-badge {{ $fePassed ? 'fe-badge-green' : ($feUnlocked ? 'fe-badge-gold' : 'fe-badge-gray') }}">
+                        {{ $fePassed ? 'Passed' : ($feUnlocked ? 'Unlocked' : 'Locked') }}
+                    </span>
+                </button>
+            </div>
+        @endif
     </div>
 
     <div class="content">
+        {{-- ── Final Exam Content Panel ──────────────────────────── --}}
+        <div class="content-card" id="finalExamContainer" style="display: none; padding: 0;">
+            <div id="finalExamView"></div>
+        </div>
+
         <div class="content-card" id="lessonContainer" style="display: none;">
             <div class="lesson-header">
                 <div class="lesson-icon-badge" id="badgeIcon">▣</div>
@@ -673,11 +921,25 @@
     // Core routes config
     const completeUrl = "{{ route('student.courseviewer.completeLesson', $course->id) }}";
     const submitQuizUrl = "{{ route('student.courseviewer.submitQuiz', $course->id) }}";
+    const submitFinalExamUrl = "{{ route('student.courseviewer.submitFinalExam', $course->id) }}";
     const csrfToken = "{{ csrf_token() }}";
 
     // Quiz attempt tracking: { lessonId: { total, best_score, ever_passed } }
     let quizAttemptData = @json($quizAttemptData);
     const MAX_ATTEMPTS = 3;
+
+    // Final Exam server-side state injected from PHP
+    const finalExamData       = @json(optional($course->finalExam));
+    const finalExamQuestions  = @json(optional($course->finalExam)->questions ?? []);
+    const finalExamAttemptData = @json($finalExamAttempt);
+    const certificateData      = @json($certificate);
+    const courseProgress       = {{ $studentCourse->progress ?? 0 }};
+    const allQuizzesPassed     = {{ $allQuizzesPassed ? 'true' : 'false' }};
+    const quizPassedCount      = {{ $quizPassed ?? 0 }};
+    const quizTotalCount       = {{ $quizTotal ?? 0 }};
+
+    // Final exam client-side state
+    let feState = null; // { questions: [], currentIndex: 0, answers: {}, submitted: false }
 
     // Application state
     let activeIndex = -1;
@@ -1239,11 +1501,7 @@
             return;
         }
 
-        quizStates[lessonId] = {
-            currentQuestionIndex: 0,
-            answers:             {},
-            result:              null,
-        };
+        delete quizStates[lessonId];
         const lesson = lessons.find(l => l.id === lessonId);
         if (lesson) renderQuiz(lesson);
         updateBottomControls();
@@ -1356,6 +1614,354 @@
         else if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split('?')[0];
         else if (url.includes('/embed/')) return url;
         return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FINAL EXAM ENGINE
+    // ═══════════════════════════════════════════════════════════════════════
+
+    function selectFinalExam() {
+        if (courseProgress < 100 || !allQuizzesPassed) {
+            showToast('You must pass all module quizzes before taking the Final Exam. (' + quizPassedCount + ' / ' + quizTotalCount + ' quizzes passed)', 'error');
+            return;
+        }
+
+        // Switch panels
+        document.getElementById('emptyContainer').style.display = 'none';
+        document.getElementById('lessonContainer').style.display = 'none';
+        document.getElementById('finalExamContainer').style.display = 'flex';
+
+        // Mark sidebar active
+        document.querySelectorAll('.topic').forEach(el => el.classList.remove('active'));
+        const feBtn = document.getElementById('final-exam-sidebar-btn');
+        if (feBtn) feBtn.style.background = 'rgba(255,195,43,0.12)';
+
+        activeIndex = -1;
+
+        // If already attempted — show result directly
+        if (finalExamAttemptData) {
+            renderFEResult(finalExamAttemptData);
+            return;
+        }
+
+        // Show intro/instructions screen
+        renderFEIntro();
+    }
+
+    function renderFEIntro() {
+        const view = document.getElementById('finalExamView');
+        const questionCount = finalExamQuestions.length;
+        const passingScore  = finalExamData ? finalExamData.passing_score : 70;
+
+        view.innerHTML = `
+            <div class="final-exam-panel">
+                <div class="fe-header-row">
+                    <div class="fe-icon-badge">📋</div>
+                    <div class="fe-header-info">
+                        <h1>Final Course Exam</h1>
+                        <p>Complete all questions to earn your certificate.</p>
+                    </div>
+                </div>
+
+                <div class="fe-intro-screen">
+                    <span class="fe-lock-icon">🎯</span>
+                    <div class="fe-lock-title">Ready to take the Final Exam?</div>
+                    <div class="fe-lock-desc">
+                        This exam consists of <strong>${questionCount} questions</strong>.
+                        You need a score of <strong>${passingScore}%</strong> or higher to pass and earn your certificate.
+                        <br><br>
+                        ⚠️ <strong>You only get ONE attempt.</strong> Answer all questions carefully.
+                    </div>
+
+                    <div style="display:flex; gap:24px; justify-content:center; flex-wrap:wrap; margin-bottom:24px;">
+                        <div class="fe-stat-card" style="padding:16px 24px;">
+                            <div class="fe-stat-label">Questions</div>
+                            <div class="fe-stat-value">${questionCount}</div>
+                        </div>
+                        <div class="fe-stat-card" style="padding:16px 24px;">
+                            <div class="fe-stat-label">Passing Score</div>
+                            <div class="fe-stat-value">${passingScore}%</div>
+                        </div>
+                        <div class="fe-stat-card" style="padding:16px 24px;">
+                            <div class="fe-stat-label">Attempts Allowed</div>
+                            <div class="fe-stat-value">1</div>
+                        </div>
+                    </div>
+
+                    <button class="fe-start-btn" onclick="startFinalExam()">
+                        🚀 Begin Final Exam
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function startFinalExam() {
+        if (!finalExamQuestions || finalExamQuestions.length === 0) {
+            showToast('No questions found for this exam.', 'error');
+            return;
+        }
+
+        // Shuffle questions (Fisher-Yates)
+        const pool = finalExamQuestions.map(q => ({
+            ...q,
+            choices: [...(q.choices || [])].sort(() => Math.random() - 0.5)
+        }));
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+
+        feState = {
+            questions:    pool,
+            currentIndex: 0,
+            answers:      {},
+            submitted:    false
+        };
+
+        renderFEQuestion();
+    }
+
+    function renderFEQuestion() {
+        if (!feState) return;
+        const view = document.getElementById('finalExamView');
+        const q    = feState.questions[feState.currentIndex];
+        const idx  = feState.currentIndex;
+        const total = feState.questions.length;
+        const progress = ((idx) / total) * 100;
+        const hasAnswer = feState.answers[q.id] !== undefined;
+        const isLast    = idx === total - 1;
+
+        let choicesHtml = '';
+        (q.choices || []).forEach(choice => {
+            const isSelected = feState.answers[q.id] == choice.id;
+            choicesHtml += `
+                <label class="quiz-option-label ${isSelected ? 'selected' : ''}" 
+                       onclick="fePick(${q.id}, ${choice.id})">
+                    <input type="radio" name="feq-${q.id}" value="${choice.id}" ${isSelected ? 'checked' : ''} style="pointer-events:none;">
+                    <span>${choice.choice_text || choice.text || ''}</span>
+                </label>
+            `;
+        });
+
+        view.innerHTML = `
+            <div class="final-exam-panel">
+                <div class="fe-header-row">
+                    <div class="fe-icon-badge">📋</div>
+                    <div class="fe-header-info">
+                        <h1>Final Course Exam</h1>
+                        <p>Answer all ${total} questions to submit.</p>
+                    </div>
+                </div>
+
+                <div class="fe-progress-bar-wrap">
+                    <div class="fe-progress-bar-fill" style="width: ${progress}%;"></div>
+                </div>
+                <div class="fe-progress-text">
+                    Question ${idx + 1} of ${total} &nbsp;·&nbsp;
+                    ${Object.keys(feState.answers).length} answered
+                </div>
+
+                <div class="quiz-question-card">
+                    <div class="quiz-question-text">${idx + 1}. ${q.question}</div>
+                    <div class="quiz-options-list">
+                        ${choicesHtml}
+                    </div>
+                </div>
+
+                <div class="quiz-nav-row" style="display:flex; justify-content:space-between; margin-top:20px;">
+                    <button class="quiz-btn quiz-btn-secondary" onclick="fePrev()"
+                        ${idx === 0 ? 'disabled style="opacity:0;pointer-events:none;"' : ''}>
+                        &larr; Previous
+                    </button>
+
+                    ${isLast
+                        ? `<button class="fe-submit-btn" onclick="feSubmitConfirm()" ${!hasAnswer ? 'disabled' : ''}>
+                                ✓ Submit Final Exam
+                           </button>`
+                        : `<button class="quiz-btn quiz-btn-primary" onclick="feNext()" ${!hasAnswer ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>
+                                Next &rarr;
+                           </button>`
+                    }
+                </div>
+            </div>
+        `;
+    }
+
+    function fePick(questionId, choiceId) {
+        if (!feState || feState.submitted) return;
+        feState.answers[questionId] = choiceId;
+        renderFEQuestion();
+    }
+
+    function fePrev() {
+        if (!feState || feState.currentIndex <= 0) return;
+        feState.currentIndex--;
+        renderFEQuestion();
+    }
+
+    function feNext() {
+        if (!feState) return;
+        const q = feState.questions[feState.currentIndex];
+        if (feState.answers[q.id] === undefined) return;
+        feState.currentIndex++;
+        renderFEQuestion();
+    }
+
+    function feSubmitConfirm() {
+        const total     = feState.questions.length;
+        const answered  = Object.keys(feState.answers).length;
+        const unanswered = total - answered;
+
+        if (unanswered > 0) {
+            showToast(`You still have ${unanswered} unanswered question(s). Please answer all before submitting.`, 'error');
+            return;
+        }
+
+        // Visual confirmation instead of browser confirm()
+        const view = document.getElementById('finalExamView');
+        view.innerHTML += `
+            <div id="fe-confirm-overlay" style="
+                position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;
+                display:flex;align-items:center;justify-content:center;
+            ">
+                <div style="background:white;border-radius:20px;padding:40px;max-width:440px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+                    <h2 style="font-size:22px;font-weight:800;color:#0f172a;margin-bottom:12px;">Submit Final Exam?</h2>
+                    <p style="color:#475569;font-size:14px;line-height:1.6;margin-bottom:24px;">
+                        You are about to submit all <strong>${total}</strong> answers.
+                        This action <strong>cannot be undone</strong>. You only have one attempt.
+                    </p>
+                    <div style="display:flex;gap:12px;justify-content:center;">
+                        <button onclick="document.getElementById('fe-confirm-overlay').remove()"
+                            style="padding:12px 24px;border-radius:10px;border:none;background:#f1f5f9;color:#475569;font-weight:700;font-size:14px;cursor:pointer;">
+                            Cancel
+                        </button>
+                        <button onclick="feSubmit()"
+                            style="padding:12px 28px;border-radius:10px;border:none;background:#002244;color:white;font-weight:700;font-size:14px;cursor:pointer;">
+                            Yes, Submit Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function feSubmit() {
+        const overlay = document.getElementById('fe-confirm-overlay');
+        if (overlay) overlay.remove();
+        feState.submitted = true;
+
+        // Show loading state
+        document.getElementById('finalExamView').innerHTML = `
+            <div class="final-exam-panel" style="text-align:center;padding:80px 40px;">
+                <div style="font-size:48px;margin-bottom:16px;animation:spin 1s linear infinite;">⏳</div>
+                <div style="font-size:18px;font-weight:700;color:#475569;">Submitting your answers...</div>
+                <style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>
+            </div>
+        `;
+
+        fetch(submitFinalExamUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ answers: feState.answers })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                renderFEResult(data);
+                updateFESidebar(data.passed);
+            } else {
+                showToast(data.error || 'Submission failed. Please refresh and try again.', 'error');
+                feState.submitted = false;
+                renderFEQuestion();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Network error. Please try again.', 'error');
+            feState.submitted = false;
+            renderFEQuestion();
+        });
+    }
+
+    function renderFEResult(data) {
+        const view      = document.getElementById('finalExamView');
+        const passed    = data.passed;
+        const score     = data.score ?? data.score_percentage;
+        const correct   = data.correct_count ?? '-';
+        const total     = data.total ?? finalExamQuestions.length;
+        const passing   = data.passing_score ?? (finalExamData ? finalExamData.passing_score : 70);
+        const certUid   = data.certificate_uid ?? (certificateData ? certificateData.certificate_uid : null);
+
+        let certHtml = '';
+        if (passed && certUid) {
+            certHtml = `
+                <a href="/storage/certificates/${certUid}.pdf" target="_blank" class="fe-cert-download">
+                    📄 Download Your Certificate
+                </a>
+                <p style="font-size:13px;color:#64748b;margin-top:8px;">Certificate ID: <strong>${certUid}</strong></p>
+            `;
+        }
+
+        view.innerHTML = `
+            <div class="final-exam-panel">
+                <div class="fe-result-box ${passed ? 'pass' : 'fail'}">
+                    <span class="fe-result-icon">${passed ? '🎓' : '📝'}</span>
+                    <div class="fe-result-title ${passed ? 'pass' : 'fail'}">
+                        ${passed ? 'Congratulations! You Passed!' : 'You Did Not Pass'}
+                    </div>
+                    <div class="fe-result-score ${passed ? 'pass' : 'fail'}">${score}%</div>
+
+                    <div class="fe-stat-grid">
+                        <div class="fe-stat-card">
+                            <div class="fe-stat-label">Correct Answers</div>
+                            <div class="fe-stat-value">${correct} / ${total}</div>
+                        </div>
+                        <div class="fe-stat-card">
+                            <div class="fe-stat-label">Your Score</div>
+                            <div class="fe-stat-value">${score}%</div>
+                        </div>
+                        <div class="fe-stat-card">
+                            <div class="fe-stat-label">Passing Score</div>
+                            <div class="fe-stat-value">${passing}%</div>
+                        </div>
+                    </div>
+
+                    <div class="fe-result-desc">
+                        ${passed
+                            ? `Outstanding work! You have successfully completed the course and earned your official <strong>Certly Certificate of Completion</strong>. Your certificate has been emailed to you.`
+                            : `You scored ${score}%, but the passing score is ${passing}%. Unfortunately, only one attempt is allowed for the final exam. Please contact your facilitator for further assistance.`
+                        }
+                    </div>
+
+                    ${certHtml}
+
+                    ${!passed ? `
+                        <div style="margin-top:20px;padding:16px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:14px;font-weight:600;">
+                            🔒 No retakes available. Contact your facilitator for assistance.
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    function updateFESidebar(passed) {
+        const card = document.getElementById('final-exam-sidebar-card');
+        const btn  = document.getElementById('final-exam-sidebar-btn');
+        if (!card || !btn) return;
+
+        card.classList.remove('locked-state');
+        if (passed) {
+            card.classList.add('done-state');
+            btn.querySelector('.fe-badge').textContent = 'Passed';
+            btn.querySelector('.fe-badge').className   = 'fe-badge fe-badge-green';
+            btn.querySelector('span:first-child span:first-child').textContent = '🏆';
+        } else {
+            btn.querySelector('.fe-badge').textContent = 'Failed';
+            btn.querySelector('.fe-badge').className   = 'fe-badge fe-badge-gray';
+        }
     }
 </script>
 

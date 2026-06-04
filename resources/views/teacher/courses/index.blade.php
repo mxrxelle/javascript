@@ -119,7 +119,7 @@
                             <div>
                                 <h3 class="text-lg font-bold text-[#002855] leading-tight mb-1 pr-16">{{ $course->title }}</h3>
                                 <div class="text-xs text-gray-500 font-mono">
-                                    Code: {{ $course->codes->first()->code ?? 'N/A' }}
+                                    Code: {{ $course->voucherCodes->first()->code ?? 'N/A' }}
                                 </div>
                             </div>
                         </div>

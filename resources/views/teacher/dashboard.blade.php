@@ -336,9 +336,9 @@
 
                              <td class="py-4 px-4">
                                  <div class="font-semibold text-gray-800">{{ $course->title }}</div>
-                                 @if($course->codes && $course->codes->isNotEmpty())
+                                 @if($course->voucherCodes && $course->voucherCodes->isNotEmpty())
                                      <div class="text-xs text-blue-600 font-mono mt-1 flex items-center gap-1">
-                                         Code: <span class="bg-blue-50 px-1.5 py-0.5 rounded border border-blue-150 select-all font-bold">{{ $course->codes->first()->code }}</span>
+                                         Code: <span class="bg-blue-50 px-1.5 py-0.5 rounded border border-blue-150 select-all font-bold">{{ $course->voucherCodes->first()->code }}</span>
                                      </div>
                                  @endif
                              </td>
@@ -643,8 +643,8 @@
                 // Enrollment Code display
                 const codeWrapper = document.getElementById('modal-course-code-wrapper');
                 const codeElem = document.getElementById('modal-course-code');
-                if (course.codes && course.codes.length > 0) {
-                    codeElem.textContent = course.codes[0].code;
+                if (course.voucherCodes && course.voucherCodes.length > 0) {
+                    codeElem.textContent = course.voucherCodes[0].code;
                     codeWrapper.classList.remove('hidden');
                 } else {
                     codeWrapper.classList.add('hidden');

@@ -364,6 +364,34 @@
                 html = '<div class="text-muted py-2 text-center">No modules or content added yet.</div>';
             }
             
+            if (course.final_exam && course.final_exam.questions && course.final_exam.questions.length > 0) {
+                html += `
+                <div class="mt-4 border-top pt-3">
+                    <div class="fw-bold text-dark mb-2" style="font-size: 16px; color: #002855;">
+                        <i class="fa-solid fa-trophy text-warning me-2"></i> Final Course Exam (Passing Score: ${course.final_exam.passing_score}%)
+                    </div>
+                    <div class="my-2 p-3 bg-white border rounded shadow-sm" style="margin-left: 28px; max-width: 600px;">
+                        <div class="fw-bold mb-2 text-secondary small"><i class="fa-solid fa-list-check me-1"></i>Exam Question Pool (${course.final_exam.questions.length} Questions):</div>`;
+                
+                course.final_exam.questions.forEach((q, qIndex) => {
+                    html += `
+                    <div class="mb-3 border-bottom pb-2">
+                        <div class="fw-semibold text-dark small">${qIndex + 1}. ${q.question}</div>`;
+                    if (q.choices && q.choices.length > 0) {
+                        html += `<ul class="list-unstyled ms-3 mt-1 small">`;
+                        q.choices.forEach(opt => {
+                            let badge = opt.is_correct ? `<span class="badge bg-success-subtle text-success border border-success-subtle ms-2 px-1.5 py-0.5" style="font-size: 9px;">Correct</span>` : '';
+                            let style = opt.is_correct ? 'font-weight: 600; color: #15803d;' : 'color: #4b5563;';
+                            html += `<li style="${style}" class="py-0.5">• ${opt.choice_text} ${badge}</li>`;
+                        });
+                        html += `</ul>`;
+                    }
+                    html += `</div>`;
+                });
+                
+                html += `</div></div>`;
+            }
+            
             modalCourseStructure.innerHTML = html;
             currentModal.show();
         }

@@ -117,6 +117,9 @@ Route::middleware([
 
         Route::post('/student/courseviewer/{course}/submit-quiz', [StudentController::class, 'submitQuiz'])
             ->name('student.courseviewer.submitQuiz');
+
+        Route::post('/student/courseviewer/{course}/submit-final-exam', [StudentController::class, 'submitFinalExam'])
+            ->name('student.courseviewer.submitFinalExam');
     });
 
     // ---------------------------------------------------------------------

@@ -102,16 +102,24 @@
                 </div>
             </div>
 
-            <div class="bg-muted rounded-3xl p-12 flex items-center justify-center h-[450px]">
-                <div class="grid grid-cols-3 gap-6">
-                    <div class="w-28 h-28 bg-primary/10 rounded-full flex items-center justify-center">
-                        <div class="w-20 h-20 bg-primary rounded-full"></div>
-                    </div>
-                    <div class="w-28 h-28 bg-primary/10 rounded-full flex items-center justify-center">
-                        <div class="w-20 h-20 bg-primary rounded-full"></div>
-                    </div>
-                    <div class="w-28 h-28 bg-primary/10 rounded-full flex items-center justify-center">
-                        <div class="w-20 h-20 bg-primary rounded-full"></div>
+            <div class="relative w-full h-[450px] rounded-3xl overflow-hidden shadow-2xl group border-4 border-muted">
+                <!-- Overlay to ensure text readability or subtle tint -->
+                <div class="absolute inset-0 bg-primary/10 group-hover:bg-primary/5 transition-colors duration-500 z-10"></div>
+                
+                <video 
+                    src="{{ asset('images/vidd.mp4') }}" 
+                    autoplay loop muted playsinline 
+                    class="absolute inset-0 w-full h-full object-cover"
+                ></video>
+                
+                <!-- Floating Badge -->
+                <div class="absolute bottom-6 left-6 z-20 bg-white/90 backdrop-blur-md px-5 py-3 rounded-2xl shadow-lg border border-white/50">
+                    <div class="flex items-center gap-3">
+                        <div class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </div>
+                        <span class="text-sm font-bold text-primary">Interactive Environment</span>
                     </div>
                 </div>
             </div>

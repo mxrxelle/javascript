@@ -138,6 +138,17 @@
                 <button onclick="addNewModule()" class="mt-6 w-full py-2.5 border border-dashed border-[#002855] text-[#002855] hover:bg-amber-50 hover:border-[#ffca28] rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2">
                     <span class="text-lg">+</span> Add New Module
                 </button>
+
+                <!-- Final Exam section -->
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <button id="node-final-exam" onclick="selectNode('final-exam')" class="w-full text-left px-4 py-3 rounded-xl font-medium text-sm transition hover:bg-gray-50 text-gray-700 flex justify-between items-center border border-gray-200 shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🏆</span>
+                            <span>Final Course Exam</span>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 bg-gray-100 rounded-md" id="finalExamCounter">0 / 40</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Right Panel: Editor Area (Col span 8) -->
@@ -308,6 +319,32 @@
                     </div>
                 </div>
 
+                <!-- 4. FINAL EXAM EDITOR -->
+                <div id="editor-final-exam" class="editor-pane bg-white rounded-2xl card-shadow p-8 border border-gray-100 hidden">
+                    <h2 class="text-2xl font-bold text-[#002855] mb-6 border-b pb-4">Final Course Exam Builder</h2>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Passing Score (%)</label>
+                            <input type="number" id="finalExamPassingScore" min="1" max="100" oninput="updateFinalExamPassingScore(this.value)" value="70" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ffca28] transition">
+                        </div>
+
+                        <!-- Questions Pool Header -->
+                        <div class="pt-4 border-t flex justify-between items-center">
+                            <h3 class="text-lg font-bold text-[#002855]">Final Exam Questions</h3>
+                            <span id="feQuestionsCountBadge" class="bg-blue-100 text-[#002855] text-xs px-2.5 py-1 rounded-full font-bold">0 / 40 Questions</span>
+                        </div>
+
+                        <!-- Questions list container -->
+                        <div id="feQuestionsContainer" class="space-y-6"></div>
+
+                        <!-- Add Question Button -->
+                        <button onclick="addFEQuestion()" class="w-full py-3.5 border border-dashed border-gray-300 text-gray-500 hover:border-[#ffca28] hover:text-[#002855] bg-gray-50 hover:bg-amber-50 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                            <span class="text-lg">+</span> Add Final Exam Question
+                        </button>
+                    </div>
+                </div>
+
             </div>
 
         </div>
@@ -336,8 +373,6 @@
 </footer>
 
 <script>
-    lucide.createIcons();
-
     // 1. Initial State Definition
     let courseState = {
         id: {{ $course ? $course->id : 'null' }},
@@ -345,7 +380,11 @@
         category: "{{ $course ? addslashes($course->category) : 'Tech' }}",
         description: `{!! $course ? addslashes($course->description) : '' !!}`,
         status: 'draft',
-        modules: []
+        modules: [],
+        final_exam: {
+            passing_score: {{ $course && $course->finalExam ? $course->finalExam->passing_score : 70 }},
+            questions: []
+        }
     };
 
     // Populate courseState from existing course model if editing
@@ -398,6 +437,26 @@
 
             courseState.modules.push(mod_{{ $mod->id }});
         @endforeach
+
+        @if($course->finalExam)
+            @foreach($course->finalExam->questions as $feq)
+                let feq_{{ $feq->id }} = {
+                    id: {{ $feq->id }},
+                    question: `{!! addslashes($feq->question) !!}`,
+                    options: []
+                };
+
+                @foreach($feq->choices as $opt)
+                    feq_{{ $feq->id }}.options.push({
+                        id: {{ $opt->id }},
+                        text: "{{ addslashes($opt->choice_text) }}",
+                        is_correct: {{ $opt->is_correct ? 'true' : 'false' }}
+                    });
+                @endforeach
+
+                courseState.final_exam.questions.push(feq_{{ $feq->id }});
+            @endforeach
+        @endif
     @endif
 
     // Track active selection
@@ -406,6 +465,9 @@
 
     // On Load Initializer
     document.addEventListener('DOMContentLoaded', () => {
+        // Initialize Lucide icons
+        try { lucide.createIcons(); } catch(e) { console.error('Lucide error:', e); }
+
         // Hydrate form values if editing
         document.getElementById('courseTitleInput').value = courseState.title;
         document.getElementById('courseCategoryInput').value = courseState.category;
@@ -425,6 +487,21 @@
         modulesContainer.innerHTML = '';
 
         courseState.modules.forEach((mod, modIdx) => {
+
+            // Ensure every module always has a quiz item
+            const hasQuiz = mod.items.some(i => i.type === 'quiz');
+            if (!hasQuiz) {
+                mod.items.push({
+                    id: null,
+                    title: `Module ${mod.sort_order} Assessment`,
+                    type: 'quiz',
+                    content: `Test your understanding of this module.`,
+                    quiz_questions_count: 5,
+                    sort_order: mod.items.length + 1,
+                    questions: []
+                });
+            }
+
             const modDiv = document.createElement('div');
             modDiv.className = 'border border-gray-200 rounded-xl overflow-hidden';
             
@@ -434,8 +511,8 @@
             modHeader.innerHTML = `
                 <span class="text-xs font-bold truncate">Module ${mod.sort_order}: ${mod.title}</span>
                 <div class="flex gap-1.5 flex-shrink-0">
-                    <button onclick="editModuleName(${modIdx})" title="Rename Module" class="hover:text-amber-300"><i data-lucide="edit" class="w-3.5 h-3.5"></i></button>
-                    <button onclick="removeModule(${modIdx})" title="Delete Module" class="hover:text-red-400"><i data-lucide="trash" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="editModuleName(${modIdx})" title="Rename Module" class="hover:text-amber-300">✏️</button>
+                    <button onclick="removeModule(${modIdx})" title="Delete Module" class="hover:text-red-400">🗑️</button>
                 </div>
             `;
             modDiv.appendChild(modHeader);
@@ -452,53 +529,34 @@
                 const itemBtn = document.createElement('button');
                 itemBtn.className = `w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center justify-between gap-2 ${activeClass}`;
                 
-                let icon = 'file';
-                if (item.type === 'video') icon = 'video';
-                if (item.type === 'presentation') icon = 'presentation';
-                if (item.type === 'quiz') icon = 'help-circle';
+                const emoji = item.type === 'quiz' ? '❓' : '📄';
+                const label = item.type === 'quiz'
+                    ? 'Module Quiz'
+                    : `${mod.sort_order}.${item.sort_order} ${item.title || 'Untitled Subtopic'}`;
 
                 itemBtn.innerHTML = `
-                    <div onclick="selectNode('${nodeKey}')" class="flex items-center gap-2 flex-1 truncate py-0.5">
-                        <i data-lucide="${icon}" class="w-3.5 h-3.5"></i>
-                        <span class="truncate">${item.type === 'quiz' ? 'Module Quiz' : `${mod.sort_order}.${item.sort_order} ${item.title || 'Untitled Subtopic'}`}</span>
+                    <div onclick="selectNode('${nodeKey}')" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:2px 0;">
+                        <span>${emoji}</span>
+                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</span>
                     </div>
-                    ${item.type !== 'quiz' ? `
-                        <button onclick="removeSubtopic(${modIdx}, ${itemIdx})" class="text-gray-400 hover:text-red-500 pl-1"><i data-lucide="x" class="w-3 h-3"></i></button>
-                    ` : ''}
+                    ${item.type !== 'quiz' ? `<button onclick="removeSubtopic(${modIdx}, ${itemIdx})" style="color:#9ca3af;flex-shrink:0;padding-left:4px;">✕</button>` : ''}
                 `;
                 listDiv.appendChild(itemBtn);
             });
 
-            // If no quiz yet, ensure one is added implicitly
-            const hasQuiz = mod.items.some(i => i.type === 'quiz');
-            if (!hasQuiz) {
-                // Autocreate a quiz placeholder inside the model state for safety
-                mod.items.push({
-                    id: null,
-                    title: `Module ${mod.sort_order} Assessment: Control Flow`,
-                    type: 'quiz',
-                    content: `Test your understanding of control flow and loops in programming.`,
-                    quiz_questions_count: 5,
-                    sort_order: mod.items.length + 1,
-                    questions: []
-                });
-                // Rerender tree to show it
-                setTimeout(renderTree, 0);
-                return;
-            }
-
             // Add Subtopic button
             const addSubBtn = document.createElement('button');
-            addSubBtn.className = 'w-full py-1.5 border border-dashed border-gray-300 text-gray-500 hover:bg-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1';
-            addSubBtn.onclick = () => addNewSubtopic(modIdx);
-            addSubBtn.innerHTML = `<span>+</span> Add New Subtopic`;
+            addSubBtn.type = 'button';
+            addSubBtn.style.cssText = 'width:100%;padding:6px;border:1px dashed #d1d5db;color:#6b7280;background:transparent;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;';
+            addSubBtn.onclick = function() { addNewSubtopic(modIdx); };
+            addSubBtn.textContent = '+ Add New Subtopic';
             listDiv.appendChild(addSubBtn);
 
             modDiv.appendChild(listDiv);
             modulesContainer.appendChild(modDiv);
         });
 
-        lucide.createIcons();
+        try { lucide.createIcons(); } catch(e) { console.error(e); }
     }
 
     // 3. Node Selection Handler
@@ -506,13 +564,20 @@
         activeNode = key;
         
         // Update tree highlighting
-        const allNodes = document.querySelectorAll('#treeContainer button, #treeModules button');
+        const allNodes = document.querySelectorAll('#treeContainer button, #treeModules button, #node-final-exam');
         // Course Info highlights
         const courseInfoNode = document.getElementById('node-course-info');
         if (key === 'course-info') {
             courseInfoNode.className = "w-full text-left px-4 py-3 rounded-xl font-medium text-sm transition sidebar-active shadow-sm flex items-center gap-2";
         } else {
             courseInfoNode.className = "w-full text-left px-4 py-3 rounded-xl font-medium text-sm transition hover:bg-gray-50 text-gray-700 flex items-center gap-2";
+        }
+
+        const finalExamNode = document.getElementById('node-final-exam');
+        if (key === 'final-exam') {
+            finalExamNode.className = "w-full text-left px-4 py-3 rounded-xl font-medium text-sm transition sidebar-active shadow-sm flex justify-between items-center border border-gray-200";
+        } else {
+            finalExamNode.className = "w-full text-left px-4 py-3 rounded-xl font-medium text-sm transition hover:bg-gray-50 text-gray-700 flex justify-between items-center border border-gray-200 shadow-sm";
         }
 
         // Hide all panes
@@ -557,6 +622,9 @@
 
             // Render Questions
             renderQuestionsList(quiz);
+        } else if (key === 'final-exam') {
+            document.getElementById('editor-final-exam').classList.remove('hidden');
+            renderFEQuestionsList();
         }
     }
 
@@ -662,10 +730,9 @@
 
     // 6. Dynamic Adding and Deleting Structure Nodes
     function addNewModule() {
-        const title = prompt("Enter Module Title:");
-        if (!title) return;
-
         const nextOrder = courseState.modules.length + 1;
+        const title = "Module " + nextOrder;
+
         courseState.modules.push({
             id: null,
             title: title,
@@ -674,21 +741,19 @@
         });
 
         renderTree();
-        // Automatically select course info or the new module
         selectNode('course-info');
     }
 
     function editModuleName(modIdx) {
-        const oldTitle = courseState.modules[modIdx].title;
-        const title = prompt("Rename Module Title:", oldTitle);
-        if (!title) return;
-
-        courseState.modules[modIdx].title = title;
-        renderTree();
+        const newTitle = window.prompt('Rename Module Title:', courseState.modules[modIdx].title);
+        if (newTitle && newTitle.trim()) {
+            courseState.modules[modIdx].title = newTitle.trim();
+            renderTree();
+        }
     }
 
     function removeModule(modIdx) {
-        if (confirm("Are you sure you want to delete this module and all its subtopics & quiz?")) {
+        if (window.confirm("Are you sure you want to delete this module and all its subtopics & quiz?")) {
             courseState.modules.splice(modIdx, 1);
             // Re-order modules sort order
             courseState.modules.forEach((mod, idx) => {
@@ -700,9 +765,6 @@
     }
 
     function addNewSubtopic(modIdx) {
-        const title = prompt("Enter Subtopic Title:");
-        if (!title) return;
-
         const module = courseState.modules[modIdx];
         const nextOrder = module.items.length + 1; // quizzes are also in items, let's adjust order later
 
@@ -710,7 +772,7 @@
         const quizIdx = module.items.findIndex(i => i.type === 'quiz');
         const newSubtopic = {
             id: null,
-            title: title,
+            title: "New Subtopic",
             type: 'presentation',
             content: '',
             youtube_url: '',
@@ -927,7 +989,7 @@
             container.appendChild(qCard);
         });
 
-        lucide.createIcons();
+        try { lucide.createIcons(); } catch(e) { console.error(e); }
     }
 
     function addNewQuestion() {
@@ -996,6 +1058,132 @@
         }
     }
 
+    function updateFinalExamPassingScore(val) {
+        courseState.final_exam.passing_score = parseInt(val) || 70;
+    }
+
+    function renderFEQuestionsList() {
+        const container = document.getElementById('feQuestionsContainer');
+        container.innerHTML = '';
+
+        const badge = document.getElementById('feQuestionsCountBadge');
+        const count = courseState.final_exam.questions.length;
+        badge.textContent = count + ' / 40 Questions';
+
+        document.getElementById('finalExamCounter').textContent = count + ' / 40';
+
+        if (count < 40) {
+            badge.className = 'bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold';
+            document.getElementById('finalExamCounter').className = 'text-xs font-bold px-2 py-1 bg-amber-100 text-amber-800 rounded-md shadow-sm';
+        } else {
+            badge.className = 'bg-green-100 text-green-800 text-xs px-2.5 py-1 rounded-full font-bold';
+            document.getElementById('finalExamCounter').className = 'text-xs font-bold px-2 py-1 bg-green-100 text-green-800 rounded-md shadow-sm';
+        }
+
+        courseState.final_exam.questions.forEach(function(q, qIdx) {
+            const qCard = document.createElement('div');
+            qCard.className = 'border border-gray-200 rounded-xl p-5 bg-white space-y-4 shadow-sm relative';
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'flex justify-between items-center pb-2 border-b';
+            header.innerHTML = '<span class="text-xs font-bold text-gray-500">Question ' + (qIdx + 1) + ' of ' + count + '</span>'
+                + '<button onclick="removeFEQuestion(' + qIdx + ')" class="text-gray-400 hover:text-red-500" title="Remove">🗑️</button>';
+            qCard.appendChild(header);
+
+            // Question text input
+            const qDiv = document.createElement('div');
+            const qLabel = document.createElement('label');
+            qLabel.className = 'block text-xs font-bold text-gray-600 mb-1.5';
+            qLabel.textContent = 'Question Text';
+            const qInput = document.createElement('input');
+            qInput.type = 'text';
+            qInput.value = q.question || '';
+            qInput.placeholder = 'Enter the final exam question here...';
+            qInput.className = 'w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 transition';
+            qInput.oninput = function() { updateFEQuestionPrompt(qIdx, this.value); };
+            qDiv.appendChild(qLabel);
+            qDiv.appendChild(qInput);
+            qCard.appendChild(qDiv);
+
+            // Options grid
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+
+            [0, 1, 2, 3].forEach(function(optIdx) {
+                const opt = q.options[optIdx] || { id: null, text: '', is_correct: false };
+                if (!q.options[optIdx]) q.options[optIdx] = opt;
+
+                const isCorrect = opt.is_correct;
+                const optDiv = document.createElement('div');
+                optDiv.className = 'border rounded-xl p-3 flex items-center gap-3 transition ' + (isCorrect ? 'border-green-500 bg-green-50' : 'border-gray-200');
+
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'feq-' + qIdx + '-correct';
+                radio.checked = isCorrect;
+                radio.className = 'w-4 h-4 text-green-600';
+                radio.onclick = function() { markFEOptionCorrect(qIdx, optIdx); };
+
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.value = opt.text || '';
+                textInput.placeholder = 'Option ' + String.fromCharCode(65 + optIdx);
+                textInput.className = 'flex-1 text-xs bg-transparent border-none outline-none font-semibold text-gray-700';
+                textInput.oninput = function() { updateFEOptionText(qIdx, optIdx, this.value); };
+
+                optDiv.appendChild(radio);
+                optDiv.appendChild(textInput);
+                if (isCorrect) {
+                    const check = document.createElement('span');
+                    check.textContent = '✓';
+                    check.style.color = '#16a34a';
+                    check.style.fontWeight = 'bold';
+                    optDiv.appendChild(check);
+                }
+                grid.appendChild(optDiv);
+            });
+
+            qCard.appendChild(grid);
+            container.appendChild(qCard);
+        });
+    }
+
+
+    function addFEQuestion() {
+        courseState.final_exam.questions.push({
+            id: null,
+            question: '',
+            options: [
+                { id: null, text: '', is_correct: true },
+                { id: null, text: '', is_correct: false },
+                { id: null, text: '', is_correct: false },
+                { id: null, text: '', is_correct: false }
+            ]
+        });
+        renderFEQuestionsList();
+    }
+
+    function removeFEQuestion(qIdx) {
+        courseState.final_exam.questions.splice(qIdx, 1);
+        renderFEQuestionsList();
+    }
+
+    function updateFEQuestionPrompt(qIdx, val) {
+        courseState.final_exam.questions[qIdx].question = val;
+    }
+
+    function updateFEOptionText(qIdx, optIdx, val) {
+        courseState.final_exam.questions[qIdx].options[optIdx].text = val;
+    }
+
+    function markFEOptionCorrect(qIdx, optIdx) {
+        courseState.final_exam.questions[qIdx].options.forEach((opt, idx) => {
+            opt.is_correct = (idx === optIdx);
+        });
+        renderFEQuestionsList();
+    }
+
     // 9. Save Course AJAX Submission handler
     function saveCourse(status) {
         // Validate Course state
@@ -1012,6 +1200,30 @@
 
         // Deep validation for subtopics and quizzes before submitting for approval
         if (status === 'pending') {
+            // Final Exam Validation
+            if (courseState.final_exam.questions.length !== 40) {
+                alert(`Final exam requires exactly 40 questions. You currently have ${courseState.final_exam.questions.length}.`);
+                selectNode('final-exam');
+                return;
+            }
+            
+            // Validate final exam question texts
+            for (let qIdx = 0; qIdx < courseState.final_exam.questions.length; qIdx++) {
+                const q = courseState.final_exam.questions[qIdx];
+                if (!q.question.trim()) {
+                    alert(`Final Exam Question ${qIdx+1} is missing the question text.`);
+                    selectNode('final-exam');
+                    return;
+                }
+                let hasEmptyOptions = false;
+                q.options.forEach(o => { if (!o.text.trim()) hasEmptyOptions = true; });
+                if (hasEmptyOptions) {
+                    alert(`All 4 options for Final Exam Question ${qIdx+1} must be filled out.`);
+                    selectNode('final-exam');
+                    return;
+                }
+            }
+
             let errorMsg = null;
             let errorNode = null;
 

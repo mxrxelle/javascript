@@ -10,6 +10,7 @@ use App\Models\LessonFile;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\StudentCourse;
+use App\Models\FinalExamAttempt;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,7 @@ class TeacherController extends Controller
         $students = User::where('role', 'student')->orderBy('created_at', 'desc')->get();
 
         // 2. Approved Courses for this teacher
-        $approvedCourses = Course::with('codes')->where('user_id', $teacherId)
+        $approvedCourses = Course::with('voucherCodes')->where('user_id', $teacherId)
             ->where('status', 'approved')
             ->orderBy('approved_at', 'desc')
             ->get();
@@ -49,7 +50,7 @@ class TeacherController extends Controller
         }
 
         // 3. Submissions for Approval (Pending, Returned, Draft)
-        $submissions = Course::with('codes')->where('user_id', $teacherId)
+        $submissions = Course::with('voucherCodes')->where('user_id', $teacherId)
             ->whereIn('status', ['pending', 'returned', 'draft'])
             ->orderBy('updated_at', 'desc')
             ->get();
@@ -89,7 +90,7 @@ class TeacherController extends Controller
             return redirect()->route('teacher.dashboard')->with('error', 'Cannot edit a course that is currently pending or approved.');
         }
 
-        $course->load(['modules.lessons.questions.options', 'modules.lessons.files']);
+        $course->load(['modules.lessons.questions.options', 'modules.lessons.files', 'finalExam.questions.choices']);
 
         return view('teacher.course_builder', compact('course'));
     }
@@ -300,6 +301,63 @@ class TeacherController extends Controller
                 ->whereNotIn('id', $passedModuleIds)
                 ->delete();
 
+            // --- Final Exam handling ---
+            if (isset($data['final_exam']) && is_array($data['final_exam'])) {
+                $feData = $data['final_exam'];
+                $finalExam = \App\Models\FinalExam::updateOrCreate(
+                    ['course_id' => $course->id],
+                    ['passing_score' => $feData['passing_score'] ?? 70]
+                );
+
+                if (isset($feData['questions']) && is_array($feData['questions'])) {
+                    $passedQuestionIds = [];
+                    foreach ($feData['questions'] as $idx => $qData) {
+                        $qId = $qData['id'] ?? null;
+                        $question = $qId ? \App\Models\FinalExamQuestion::findOrFail($qId) : \App\Models\FinalExamQuestion::create([
+                            'final_exam_id' => $finalExam->id,
+                            'question' => $qData['question'],
+                            'order' => $idx + 1,
+                        ]);
+
+                        if ($qId) {
+                            $question->update([
+                                'question' => $qData['question'],
+                                'order' => $idx + 1,
+                            ]);
+                        }
+
+                        $passedQuestionIds[] = $question->id;
+
+                        $passedChoiceIds = [];
+                        if (isset($qData['options']) && is_array($qData['options'])) {
+                            foreach ($qData['options'] as $oData) {
+                                $oId = $oData['id'] ?? null;
+                                $choice = $oId ? \App\Models\FinalExamChoice::findOrFail($oId) : \App\Models\FinalExamChoice::create([
+                                    'question_id' => $question->id,
+                                    'choice_text' => $oData['option_text'] ?? $oData['text'],
+                                    'is_correct' => $oData['is_correct'] ?? false,
+                                ]);
+
+                                if ($oId) {
+                                    $choice->update([
+                                        'choice_text' => $oData['option_text'] ?? $oData['text'],
+                                        'is_correct' => $oData['is_correct'] ?? false,
+                                    ]);
+                                }
+
+                                $passedChoiceIds[] = $choice->id;
+                            }
+                        }
+                        \App\Models\FinalExamChoice::where('question_id', $question->id)
+                            ->whereNotIn('id', $passedChoiceIds)
+                            ->delete();
+                    }
+                    \App\Models\FinalExamQuestion::where('final_exam_id', $finalExam->id)
+                        ->whereNotIn('id', $passedQuestionIds)
+                        ->delete();
+                }
+            }
+
             DB::commit();
 
             return response()->json([
@@ -353,7 +411,7 @@ class TeacherController extends Controller
     public function showDetails(Course $course)
     {
         if ($course->user_id !== Auth::id()) return response()->json(['error' => 'Unauthorized'], 403);
-        $course->load(['modules.lessons.questions.options', 'modules.lessons.files']);
+        $course->load(['modules.lessons.questions.options', 'modules.lessons.files', 'finalExam.questions.choices']);
         return response()->json(['course' => $course]);
     }
 
@@ -389,7 +447,7 @@ class TeacherController extends Controller
     public function coursesIndex()
     {
         $teacherId = Auth::id();
-        $courses = Course::with(['codes', 'voucherCodes', 'studentEnrollments'])
+        $courses = Course::with(['voucherCodes', 'studentEnrollments'])
             ->where('user_id', $teacherId)
             ->where('status', 'approved')
             ->orderBy('approved_at', 'desc')
@@ -479,6 +537,14 @@ class TeacherController extends Controller
                 $enrollment->quiz_locked = false;
                 $enrollment->latest_quiz_score = null;
             }
+
+            // Final exam attempt data
+            $finalExamAttempt = \App\Models\FinalExamAttempt::where('student_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+            $enrollment->final_exam_score   = $finalExamAttempt ? $finalExamAttempt->score : null;
+            $enrollment->final_exam_passed  = $finalExamAttempt ? $finalExamAttempt->passed : null;
+            $enrollment->final_exam_taken   = $finalExamAttempt !== null;
         }
 
         if ($request->has('status') && $request->status != 'All Students') {

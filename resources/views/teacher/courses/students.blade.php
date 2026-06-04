@@ -158,6 +158,7 @@
                                 <th class="py-3 px-6 font-semibold text-sm">Overall Progress</th>
                                 <th class="py-3 px-6 font-semibold text-sm text-center">Module Score</th>
                                 <th class="py-3 px-6 font-semibold text-sm text-center">Takes</th>
+                                <th class="py-3 px-6 font-semibold text-sm text-center">Final Exam</th>
                                 <th class="py-3 px-6 font-semibold text-sm text-center">Status Tag</th>
                                 <th class="py-3 px-6 font-semibold text-sm text-right">Actions</th>
                             </tr>
@@ -198,6 +199,21 @@
                                         {{ $enrollment->quiz_takes }} / 3
                                     </td>
 
+                                    <td class="py-4 px-6 text-center">
+                                        @if($enrollment->final_exam_taken)
+                                            @if($enrollment->final_exam_passed)
+                                                <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold tracking-wide">
+                                                    ✅ {{ $enrollment->final_exam_score }}% — Passed
+                                                </span>
+                                            @else
+                                                <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold tracking-wide">
+                                                    ❌ {{ $enrollment->final_exam_score }}% — Failed
+                                                </span>
+                                            @endif
+                                        @else
+                                            <span class="text-gray-400 text-sm italic">Not Taken</span>
+                                        @endif
+                                    </td>
                                     <td class="py-4 px-6 text-center">
                                         @if($enrollment->quiz_locked)
                                             <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold tracking-wide">
