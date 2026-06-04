@@ -494,7 +494,7 @@
 
 <nav class="navbar">
     <div class="logo">
-        <div class="logo-box">C</div>
+        <img src="{{ asset('images/certly-logo.png') }}" alt="Certly Logo" style="width: 58px; height: 58px; object-fit: contain; border-radius: 12px; background: white; padding: 4px;">
         <span>Certly</span>
     </div>
 

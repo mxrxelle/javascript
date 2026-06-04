@@ -71,9 +71,7 @@
 
             <!-- Logo -->
             <div class="flex items-center gap-3 mb-10">
-                <div class="w-10 h-10 bg-[#ffca28] rounded-lg flex items-center justify-center">
-                    <span class="text-2xl font-bold text-[#002855]">C</span>
-                </div>
+                <img src="{{ asset('images/certly-logo.png') }}" alt="Certly Logo" class="w-10 h-10 object-contain rounded-lg bg-white p-0.5">
 
                 <span class="text-2xl font-semibold">
                     Certly
