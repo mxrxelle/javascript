@@ -194,7 +194,7 @@
 
     <div class="logo-area">
         <a href="{{ url('/') }}" class="logo-link">
-            <div class="logo-box">C</div>
+            <img src="{{ asset('images/certly-logo.png') }}" alt="Certly Logo" class="logo-img" style="width: 68px; height: 68px; object-fit: contain;">
             <span class="logo-text">Certly</span>
         </a>
     </div>

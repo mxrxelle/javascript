@@ -258,7 +258,7 @@
 <nav class="navbar-custom d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center flex-wrap">
         <div class="d-flex align-items-center gap-3">
-            <div class="logo-box">C</div>
+            <img src="{{ asset('images/certly-logo.png') }}" alt="Certly Logo" style="width: 57px; height: 57px; object-fit: contain; border-radius: 12px; background: white; padding: 4px;">
             <div class="brand-text">Certly</div>
         </div>
 
@@ -343,7 +343,7 @@
         <div class="row">
             <div class="col-md-3 mb-5">
                 <div class="d-flex align-items-center gap-3 mb-4">
-                    <div class="logo-box">C</div>
+                    <img src="{{ asset('images/certly-logo.png') }}" alt="Certly Logo" style="width: 57px; height: 57px; object-fit: contain; border-radius: 12px; background: white; padding: 4px;">
                     <div class="brand-text text-white">Certly</div>
                 </div>
                 <p>Building skills for the future</p>

@@ -137,7 +137,7 @@
 
     <div class="sidebar">
         <div class="brand">
-            <span class="logo-box">C</span> Certly
+            <img src="{{ asset('images/certly-logo.png') }}" alt="Certly Logo" style="width: 42px; height: 42px; object-fit: contain; border-radius: 8px;"> Certly
         </div>
         <ul class="sidebar-menu">
             <li><a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">⊞ Dashboard</a></li>
