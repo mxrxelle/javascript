@@ -6,6 +6,7 @@
     <title>Certly - Approvals Hub</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         body {
             background-color: #f8fafc;
@@ -51,12 +52,21 @@
             font-size: 17px;
             transition: all 0.3s;
         }
+        .sidebar-menu li a:hover:not(.active):not(.disabled-link) {
+            background-color: rgba(255,255,255,0.08);
+            color: white;
+        }
         .sidebar-menu li a.active {
             background-color: #ffca28;
             color: #002855;
             font-weight: 600;
             border-radius: 0 50px 50px 0;
             margin-right: 20px;
+        }
+        .sidebar-menu li a.disabled-link {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
         }
         .logout-btn {
             position: absolute;
@@ -99,11 +109,11 @@
             <span class="logo-box">C</span> Certly
         </div>
         <ul class="sidebar-menu">
-            <li><a href="{{ route('admin.dashboard') }}">⊞ Dashboard</a></li>
-            <li><a href="{{ route('admin.approvals') }}" class="active">✓ Approvals Hub</a></li>
-            <li><a href="{{ route('admin.users') }}">🗎 User Management</a></li>
-            <li><a href="{{ route('admin.facilitators') }}">⚙ Facilitator Management</a></li>
-            <li><a href="#">🛠 Settings</a></li>
+            <li><a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">⊞ Dashboard</a></li>
+            <li><a href="{{ route('admin.approvals') }}" class="{{ request()->routeIs('admin.approvals') ? 'active' : '' }}">✓ Approvals Hub</a></li>
+            <li><a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users') ? 'active' : '' }}">🗎 User Management</a></li>
+            <li><a href="{{ route('admin.facilitators') }}" class="{{ request()->routeIs('admin.facilitators') ? 'active' : '' }}">⚙ Facilitator Management</a></li>
+            <li><a href="#" class="disabled-link">🛠 Settings</a></li>
         </ul>
         
         <form action="{{ route('logout') }}" method="POST">
@@ -158,7 +168,7 @@
                                         <button 
                                             class="btn btn-warning btn-sm fw-bold px-3 text-dark" 
                                             style="background-color: #ffca28; border: none;"
-                                            onclick="openReview({{ json_encode($course->load('modules.lessons')) }})"
+                                            onclick="openReview({{ json_encode($course->load('modules.lessons.questions.options')) }})"
                                         >
                                             Review
                                         </button>
@@ -187,11 +197,18 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="padding: 30px;">
+                    <div id="concurrencyWarning" class="alert alert-danger d-none align-items-center gap-2 mb-3" role="alert" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <div>
+                            <strong>Notice:</strong> This course's status has been modified by another administrator. Actions have been disabled.
+                        </div>
+                    </div>
+
                     <h4 id="modalCourseTitle" class="fw-bold mb-2" style="color: #00336b;">Course Title</h4>
                     <p id="modalCourseDesc" class="text-muted mb-4" style="font-size: 15px; line-height: 1.5;">Course description.</p>
 
                     <h6 class="fw-bold mb-2" style="color: #002855;">Course Structure & Outline:</h6>
-                    <div id="modalCourseStructure" class="mb-4 p-3 bg-light rounded" style="max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0;">
+                    <div id="modalCourseStructure" class="mb-4 p-3 bg-light rounded" style="max-height: 480px; overflow-y: auto; border: 1px solid #e2e8f0;">
                         <!-- Dynamically populated modules/lessons -->
                     </div>
 
@@ -220,9 +237,20 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentModal = null;
+        let activeReviewCourseId = null;
+        let lastPendingState = null;
         
         document.addEventListener('DOMContentLoaded', function() {
             currentModal = new bootstrap.Modal(document.getElementById('reviewModal'));
+            
+            // Listen for modal hide to reset active course id
+            document.getElementById('reviewModal').addEventListener('hidden.bs.modal', function() {
+                activeReviewCourseId = null;
+            });
+
+            // Start polling
+            pollStatus();
+            setInterval(pollStatus, 5000);
         });
 
         const modalCourseTitle = document.getElementById('modalCourseTitle');
@@ -231,9 +259,25 @@
         const approveForm = document.getElementById('approveForm');
         const rejectForm = document.getElementById('rejectForm');
 
+        function getYouTubeEmbedUrl(url) {
+            if (!url) return null;
+            let regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            let match = url.match(regExp);
+            if (match && match[2].length === 11) {
+                return 'https://www.youtube.com/embed/' + match[2];
+            }
+            return null;
+        }
+
         function openReview(course) {
+            activeReviewCourseId = course.id;
             modalCourseTitle.textContent = course.title;
             modalCourseDesc.textContent = course.description || 'No description provided.';
+            
+            // Hide concurrency warning and enable action buttons
+            document.getElementById('concurrencyWarning').classList.add('d-none');
+            document.querySelector('.btn-outline-danger[onclick="submitReturn()"]').disabled = false;
+            document.querySelector('.btn-success[onclick="submitApprove()"]').disabled = false;
             
             // Set form action URLs
             approveForm.action = `/admin/courses/${course.id}/approve`;
@@ -245,32 +289,95 @@
                 course.modules.forEach(mod => {
                     html += `
                     <div class="mb-3 border-bottom pb-2">
-                        <div class="fw-bold text-dark" style="font-size: 16px; color: #002855;">
+                        <div class="fw-bold text-dark mb-2" style="font-size: 16px; color: #002855;">
                             Module ${mod.sort_order}: ${mod.title}
                         </div>`;
                     
                     if (mod.lessons && mod.lessons.length > 0) {
-                        html += `<ul class="list-unstyled ms-3 mt-2">`;
+                        html += `<ul class="list-unstyled ms-2">`;
                         mod.lessons.forEach(les => {
-                            let icon = '🗎';
-                            let typeLabel = les.type.charAt(0).toUpperCase() + les.type.slice(1);
+                            let icon = '<i class="fa-solid fa-file-lines text-muted me-2"></i>';
+                            let detailsHtml = '';
                             
-                            if (les.type === 'video') icon = '▷ Video';
-                            else if (les.type === 'presentation') icon = '▣ Slide Deck';
-                            else if (les.type === 'quiz') icon = '❓ Quiz';
-                            else if (les.type === 'reading') icon = '📖 Reading';
+                            if (les.type === 'video') {
+                                icon = '<i class="fa-solid fa-circle-play text-danger me-2"></i>';
+                                let embedUrl = getYouTubeEmbedUrl(les.youtube_url);
+                                if (embedUrl) {
+                                    detailsHtml = `
+                                    <div class="mt-2 border rounded p-1 bg-dark text-center" style="max-width: 480px; margin-left: 28px;">
+                                        <div class="ratio ratio-16x9">
+                                            <iframe src="${embedUrl}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                                        </div>
+                                    </div>`;
+                                } else if (les.youtube_url) {
+                                    detailsHtml = `
+                                    <div class="mt-1 small text-muted" style="margin-left: 28px;">
+                                        <a href="${les.youtube_url}" target="_blank" class="btn btn-sm btn-outline-primary py-0.5 px-2 text-xs"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open Video Link</a>
+                                    </div>`;
+                                }
+                            } else if (les.type === 'presentation') {
+                                icon = '<i class="fa-solid fa-file-pdf text-warning me-2"></i>';
+                                if (les.presentation_path) {
+                                    let downloadUrl = `/storage/${les.presentation_path}`;
+                                    detailsHtml = `
+                                    <div class="mt-1 small text-muted" style="margin-left: 28px;">
+                                        <a href="${downloadUrl}" download class="btn btn-sm btn-outline-primary py-0.5 px-2 text-xs"><i class="fa-solid fa-download me-1"></i>Download PDF</a>
+                                        <a href="${downloadUrl}" target="_blank" class="btn btn-sm btn-outline-secondary py-0.5 px-2 text-xs ms-1"><i class="fa-solid fa-eye me-1"></i>View PDF</a>
+                                        <span class="text-secondary ms-2" style="font-size: 11px;">(${les.presentation_size || 'PPT/PDF'})</span>
+                                    </div>`;
+                                }
+                            } else if (les.type === 'quiz') {
+                                icon = '<i class="fa-solid fa-circle-question text-info me-2"></i>';
+                                if (les.questions && les.questions.length > 0) {
+                                    detailsHtml = `<div class="my-2 p-3 bg-white border rounded shadow-sm" style="margin-left: 28px; max-width: 600px;">
+                                        <div class="fw-bold mb-2 text-secondary small"><i class="fa-solid fa-list-check me-1"></i>Quiz Question Pool (${les.questions.length} Questions):</div>`;
+                                    
+                                    les.questions.forEach((q, qIndex) => {
+                                        detailsHtml += `
+                                        <div class="mb-3 border-bottom pb-2">
+                                            <div class="fw-semibold text-dark small">${qIndex + 1}. ${q.question_text}</div>`;
+                                        
+                                        if (q.options && q.options.length > 0) {
+                                            detailsHtml += `<ul class="list-unstyled ms-3 mt-1 small">`;
+                                            q.options.forEach(opt => {
+                                                let badge = '';
+                                                let style = 'color: #4b5563;';
+                                                if (opt.is_correct) {
+                                                    badge = `<span class="badge bg-success-subtle text-success border border-success-subtle ms-2 px-1.5 py-0.5" style="font-size: 9px;"><i class="fa-solid fa-check me-0.5"></i>Correct Answer</span>`;
+                                                    style = 'font-weight: 600; color: #15803d;';
+                                                }
+                                                detailsHtml += `<li style="${style}" class="py-0.5">• ${opt.option_text} ${badge}</li>`;
+                                            });
+                                            detailsHtml += `</ul>`;
+                                        } else {
+                                            detailsHtml += `<div class="text-muted small ms-3 italic">No choices defined.</div>`;
+                                        }
+                                        detailsHtml += `</div>`;
+                                    });
+                                    
+                                    detailsHtml += `</div>`;
+                                } else {
+                                    detailsHtml = `
+                                    <span class="badge bg-info text-dark ms-2" style="font-size: 11px; background-color: #e0f2fe !important;">${les.quiz_questions_count} Pool Qs</span>
+                                    <div class="text-muted small italic ms-4 mt-1">No quiz questions added.</div>`;
+                                }
+                            } else if (les.type === 'reading') {
+                                icon = '<i class="fa-solid fa-book-open text-success me-2"></i>';
+                                if (les.content) {
+                                    detailsHtml = `
+                                    <div class="mt-2 p-2 bg-white border rounded text-muted small" style="margin-left: 28px; white-space: pre-wrap; font-size: 12px; max-height: 120px; overflow-y: auto;">
+                                        ${les.content}
+                                    </div>`;
+                                }
+                            }
 
                             html += `
-                            <li class="text-muted small py-1 d-flex justify-content-between align-items-center">
-                                <span>${icon}: ${les.title}</span>`;
-                            
-                            if (les.type === 'presentation' && les.presentation_path) {
-                                html += `<span class="badge bg-secondary text-white ms-2" style="font-size: 11px;">${les.presentation_size || 'PPT/PDF'}</span>`;
-                            }
-                            if (les.type === 'quiz') {
-                                html += `<span class="badge bg-info text-dark ms-2" style="font-size: 11px; background-color: #e0f2fe !important;">${les.quiz_questions_count} Pool Qs</span>`;
-                            }
-                            html += `</li>`;
+                            <li class="py-2 border-bottom border-light">
+                                <div class="d-flex align-items-center">
+                                    ${icon} <span class="text-dark small fw-medium">${les.title}</span>
+                                </div>
+                                ${detailsHtml}
+                            </li>`;
                         });
                         html += `</ul>`;
                     } else {
@@ -298,6 +405,31 @@
                 return;
             }
             rejectForm.submit();
+        }
+
+        function pollStatus() {
+            fetch('/api/courses/status-check')
+                .then(res => res.json())
+                .then(data => {
+                    const pending = data.pending_courses || [];
+                    const currentStateString = JSON.stringify(pending.map(c => ({ id: c.id, updated_at: c.updated_at })));
+                    
+                    if (lastPendingState !== null && lastPendingState !== currentStateString) {
+                        if (activeReviewCourseId === null) {
+                            location.reload();
+                        } else {
+                            const openCourseStillPending = pending.some(c => c.id === activeReviewCourseId);
+                            if (!openCourseStillPending) {
+                                document.getElementById('concurrencyWarning').classList.remove('d-none');
+                                document.querySelector('.btn-outline-danger[onclick="submitReturn()"]').disabled = true;
+                                document.querySelector('.btn-success[onclick="submitApprove()"]').disabled = true;
+                            }
+                        }
+                    }
+                    
+                    lastPendingState = currentStateString;
+                })
+                .catch(err => console.error("Error polling statuses: ", err));
         }
     </script>
 </body>

@@ -51,12 +51,21 @@
             font-size: 17px;
             transition: all 0.3s;
         }
+        .sidebar-menu li a:hover:not(.active):not(.disabled-link) {
+            background-color: rgba(255,255,255,0.08);
+            color: white;
+        }
         .sidebar-menu li a.active {
             background-color: #ffca28;
             color: #002855;
             font-weight: 600;
             border-radius: 0 50px 50px 0;
             margin-right: 20px;
+        }
+        .sidebar-menu li a.disabled-link {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
         }
         .logout-btn {
             position: absolute;
@@ -131,11 +140,11 @@
             <span class="logo-box">C</span> Certly
         </div>
         <ul class="sidebar-menu">
-            <li><a href="{{ route('admin.dashboard') }}" class="active">⊞ Dashboard</a></li>
-            <li><a href="{{ route('admin.approvals') }}">✓ Approvals Hub</a></li>
-            <li><a href="{{ route('admin.users') }}">🗎 User Management</a></li>
-            <li><a href="{{ route('admin.facilitators') }}">⚙ Facilitator Management</a></li>
-            <li><a href="#">🛠 Settings</a></li>
+            <li><a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">⊞ Dashboard</a></li>
+            <li><a href="{{ route('admin.approvals') }}" class="{{ request()->routeIs('admin.approvals') ? 'active' : '' }}">✓ Approvals Hub</a></li>
+            <li><a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users') ? 'active' : '' }}">🗎 User Management</a></li>
+            <li><a href="{{ route('admin.facilitators') }}" class="{{ request()->routeIs('admin.facilitators') ? 'active' : '' }}">⚙ Facilitator Management</a></li>
+            <li><a href="#" class="disabled-link">🛠 Settings</a></li>
         </ul>
         
         <form action="{{ route('logout') }}" method="POST">

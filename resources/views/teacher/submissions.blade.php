@@ -25,6 +25,11 @@
             color: #002855 !important;
         }
 
+        .sidebar a:not(.sidebar-active):hover {
+            background: rgba(255,255,255,0.08);
+            color: white !important;
+        }
+
         .primary-btn {
             background: #002855;
         }
@@ -230,6 +235,35 @@
             }
         });
     }
+
+    // Real-time polling
+    let lastTeacherCoursesState = null;
+    function pollTeacherStatus() {
+        fetch('/api/courses/status-check')
+            .then(res => res.json())
+            .then(data => {
+                const courses = data.teacher_courses || [];
+                const currentStateString = JSON.stringify(courses.map(c => ({
+                    id: c.id,
+                    status: c.status,
+                    is_active: c.is_active,
+                    admin_feedback: c.admin_feedback,
+                    code: c.code
+                })));
+                
+                if (lastTeacherCoursesState !== null && lastTeacherCoursesState !== currentStateString) {
+                    location.reload();
+                }
+                
+                lastTeacherCoursesState = currentStateString;
+            })
+            .catch(err => console.error("Error polling statuses: ", err));
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        pollTeacherStatus();
+        setInterval(pollTeacherStatus, 5000);
+    });
 </script>
 
 </body>

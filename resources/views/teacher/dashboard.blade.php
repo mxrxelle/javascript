@@ -25,6 +25,11 @@
             color: #002855 !important;
         }
 
+        .sidebar a:not(.sidebar-active):hover {
+            background: rgba(255,255,255,0.08);
+            color: white !important;
+        }
+
         .primary-btn {
             background: #002855;
         }
@@ -144,6 +149,29 @@
                     Welcome back, {{ Auth::user()->name }}! Manage your courses and student enrollments.
                 </p>
             </div>
+
+            @if(isset($returnedCourses) && $returnedCourses->count() > 0)
+                @foreach($returnedCourses as $returnedCourse)
+                    <div class="bg-red-50 border border-red-200 text-red-800 p-6 rounded-xl mb-6 flex gap-4 card-shadow" role="alert">
+                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="alert-circle" class="w-6 h-6 text-red-600"></i>
+                        </div>
+                        <div class="flex-1 text-left">
+                            <div class="text-lg font-bold text-red-800 mb-1">
+                                Course Returned for Revision: "{{ $returnedCourse->title }}"
+                            </div>
+                            <div class="text-sm text-red-700 mb-3 leading-relaxed">
+                                <strong>Admin Feedback:</strong> {{ $returnedCourse->admin_feedback ?? 'Please review your course content.' }}
+                            </div>
+                            <div>
+                                <a href="{{ route('teacher.courses.edit', $returnedCourse->id) }}" class="inline-flex items-center gap-2 bg-[#002855] hover:opacity-90 text-white text-xs font-bold px-4 py-2 rounded-lg no-underline transition">
+                                    Edit & Resubmit
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endif
 
             <!-- Quick Actions -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -308,9 +336,14 @@
                         @forelse($approvedCourses as $course)
                         <tr class="border-b hover:bg-gray-50 transition">
 
-                            <td class="py-4 px-4 font-semibold text-gray-800">
-                                {{ $course->title }}
-                            </td>
+                             <td class="py-4 px-4">
+                                 <div class="font-semibold text-gray-800">{{ $course->title }}</div>
+                                 @if($course->codes && $course->codes->isNotEmpty())
+                                     <div class="text-xs text-blue-600 font-mono mt-1 flex items-center gap-1">
+                                         Code: <span class="bg-blue-50 px-1.5 py-0.5 rounded border border-blue-150 select-all font-bold">{{ $course->codes->first()->code }}</span>
+                                     </div>
+                                 @endif
+                             </td>
 
                             <td class="py-4 px-4 text-gray-500">
                                 {{ $course->approved_at ? \Carbon\Carbon::parse($course->approved_at)->format('Y-m-d') : 'N/A' }}
@@ -509,12 +542,15 @@
                     <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-light">&times;</button>
                 </div>
                 
-                <div class="mb-4">
+                <div class="mb-4 flex items-center flex-wrap gap-2">
                     <span id="modal-course-category" class="bg-blue-100 text-[#002855] px-3 py-1 rounded-full text-xs font-semibold">
                         Category
                     </span>
-                    <span id="modal-course-status" class="ml-2 px-3 py-1 rounded-full text-xs font-semibold capitalize">
+                    <span id="modal-course-status" class="px-3 py-1 rounded-full text-xs font-semibold capitalize">
                         Status
+                    </span>
+                    <span id="modal-course-code-wrapper" class="bg-indigo-50 border border-indigo-150 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold font-mono hidden">
+                        🔑 Code: <span id="modal-course-code" class="select-all font-bold"></span>
                     </span>
                 </div>
 
@@ -606,9 +642,19 @@
                 modalCategory.textContent = course.category || 'General';
                 modalDesc.textContent = course.description || 'No description provided.';
                 
+                // Enrollment Code display
+                const codeWrapper = document.getElementById('modal-course-code-wrapper');
+                const codeElem = document.getElementById('modal-course-code');
+                if (course.codes && course.codes.length > 0) {
+                    codeElem.textContent = course.codes[0].code;
+                    codeWrapper.classList.remove('hidden');
+                } else {
+                    codeWrapper.classList.add('hidden');
+                }
+                
                 // Status badge styling
                 modalStatus.textContent = course.status;
-                modalStatus.className = 'ml-2 px-3 py-1 rounded-full text-xs font-semibold capitalize ';
+                modalStatus.className = 'px-3 py-1 rounded-full text-xs font-semibold capitalize ';
                 if (course.status === 'approved') {
                     modalStatus.className += 'bg-green-100 text-green-700';
                 } else if (course.status === 'pending') {
@@ -689,6 +735,35 @@
             }, 300);
         });
     @endif
+
+    // Real-time polling
+    let lastTeacherCoursesState = null;
+    function pollTeacherStatus() {
+        fetch('/api/courses/status-check')
+            .then(res => res.json())
+            .then(data => {
+                const courses = data.teacher_courses || [];
+                const currentStateString = JSON.stringify(courses.map(c => ({
+                    id: c.id,
+                    status: c.status,
+                    is_active: c.is_active,
+                    admin_feedback: c.admin_feedback,
+                    code: c.code
+                })));
+                
+                if (lastTeacherCoursesState !== null && lastTeacherCoursesState !== currentStateString) {
+                    location.reload();
+                }
+                
+                lastTeacherCoursesState = currentStateString;
+            })
+            .catch(err => console.error("Error polling statuses: ", err));
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        pollTeacherStatus();
+        setInterval(pollTeacherStatus, 5000);
+    });
 </script>
 
 </body>

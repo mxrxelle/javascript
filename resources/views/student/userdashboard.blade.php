@@ -568,13 +568,21 @@
                     </div>
                 @else
                     @foreach ($studentCourses as $studentCourse)
-                        <div class="card course-card">
-                            <div class="course-img">
+                        @php
+                            $isCourseAvailable = $studentCourse->course && $studentCourse->course->status === 'approved' && $studentCourse->course->is_active;
+                        @endphp
+                        <div class="card course-card" style="{{ !$isCourseAvailable ? 'opacity: 0.65; position: relative;' : '' }}">
+                            <div class="course-img" style="{{ !$isCourseAvailable ? 'background: linear-gradient(135deg, #475569, #64748b);' : '' }}">
                                 {{ $studentCourse->course->thumbnail ?? '📘' }}
                             </div>
 
                             <div class="course-body">
-                                <h3>{{ $studentCourse->course->title }}</h3>
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 16px;">
+                                    <h3 style="font-size: 29px; margin-bottom: 0;">{{ $studentCourse->course->title }}</h3>
+                                    @if (!$isCourseAvailable)
+                                        <span style="background: #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 20px; font-size: 14px; font-weight: bold; white-space: nowrap;">Unavailable</span>
+                                    @endif
+                                </div>
                                 <p>{{ $studentCourse->course->description ?? 'No description available.' }}</p>
 
                                 <div class="progress-info">
@@ -586,9 +594,15 @@
                                     <div class="progress-fill" style="width: {{ $studentCourse->progress }}%;"></div>
                                 </div>
 
-                                <a href="{{ route('student.courseviewer', $studentCourse->course->id) }}" class="resume-btn">
-    Resume Learning
-</a>
+                                @if ($isCourseAvailable)
+                                    <a href="{{ route('student.courseviewer', $studentCourse->course->id) }}" class="resume-btn">
+                                        Resume Learning
+                                    </a>
+                                @else
+                                    <button class="resume-btn" style="background: #cbd5e1; color: #64748b; cursor: not-allowed; width: 100%; border: none;" disabled>
+                                        Unavailable
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -682,6 +696,33 @@
         if (event.key === 'Escape' && logoutModal.classList.contains('active')) {
             closeLogoutModal();
         }
+    });
+
+    // Real-time polling
+    let lastStudentCoursesState = null;
+    function pollStudentStatus() {
+        fetch('/api/courses/status-check')
+            .then(res => res.json())
+            .then(data => {
+                const courses = data.student_courses || [];
+                const currentStateString = JSON.stringify(courses.map(c => ({
+                    course_id: c.course_id,
+                    status: c.status,
+                    is_active: c.is_active
+                })));
+                
+                if (lastStudentCoursesState !== null && lastStudentCoursesState !== currentStateString) {
+                    location.reload();
+                }
+                
+                lastStudentCoursesState = currentStateString;
+            })
+            .catch(err => console.error("Error polling statuses: ", err));
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        pollStudentStatus();
+        setInterval(pollStudentStatus, 5000);
     });
 </script>
 

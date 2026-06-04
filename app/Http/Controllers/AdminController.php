@@ -207,19 +207,94 @@ class AdminController extends Controller
     }
 
     /**
+     * Get real-time status update of courses based on current user role.
+     */
+    public function coursesStatusCheck()
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $data = [];
+
+        if ($user->role === 'admin') {
+            $data['pending_courses'] = \App\Models\Course::where('status', 'pending')
+                ->select('id', 'title', 'status', 'updated_at')
+                ->get()
+                ->map(function($course) {
+                    return [
+                        'id' => $course->id,
+                        'status' => $course->status,
+                        'updated_at' => $course->updated_at ? $course->updated_at->toIso8601String() : null
+                    ];
+                });
+        } elseif ($user->role === 'teacher') {
+            $data['teacher_courses'] = \App\Models\Course::where('user_id', $user->id)
+                ->select('id', 'title', 'status', 'admin_feedback', 'updated_at', 'is_active')
+                ->with('codes')
+                ->get()
+                ->map(function($course) {
+                    return [
+                        'id' => $course->id,
+                        'status' => $course->status,
+                        'is_active' => $course->is_active,
+                        'admin_feedback' => $course->admin_feedback,
+                        'updated_at' => $course->updated_at ? $course->updated_at->toIso8601String() : null,
+                        'code' => $course->codes->first()?->code
+                    ];
+                });
+        } elseif ($user->role === 'student') {
+            $data['student_courses'] = \App\Models\StudentCourse::where('user_id', $user->id)
+                ->with('course')
+                ->get()
+                ->map(function($sc) {
+                    return [
+                        'course_id' => $sc->course_id,
+                        'title' => $sc->course?->title,
+                        'status' => $sc->course?->status,
+                        'is_active' => $sc->course?->is_active,
+                        'updated_at' => $sc->course && $sc->course->updated_at ? $sc->course->updated_at->toIso8601String() : null
+                    ];
+                });
+        }
+
+        return response()->json($data);
+    }
+
+    /**
      * Approve a pending course.
      */
     public function approveCourse(Request $request, $id)
     {
         $course = \App\Models\Course::findOrFail($id);
-        $course->update([
-            'status' => 'approved',
-            'approved_at' => now(),
-            'is_active' => true,
-        ]);
+        
+        \Illuminate\Support\Facades\DB::transaction(function () use ($course) {
+            $course->update([
+                'status' => 'approved',
+                'approved_at' => now(),
+                'is_active' => true,
+            ]);
+
+            // Auto-generate a unique enrollment code for this course
+            if ($course->codes()->count() === 0) {
+                do {
+                    $code = 'CERT-' . strtoupper(Str::random(8));
+                } while (\App\Models\CourseCode::where('code', $code)->exists());
+
+                \App\Models\CourseCode::create([
+                    'course_id' => $course->id,
+                    'code' => $code,
+                    'is_used' => false,
+                ]);
+            }
+        });
+
+        // Get the generated code to display in the success message
+        $generatedCode = $course->codes()->first()?->code;
 
         return redirect()->route('admin.approvals')
-            ->with('success', "Course \"{$course->title}\" has been approved successfully!");
+            ->with('success', "Course \"{$course->title}\" has been approved and published successfully! Enrollment Code: {$generatedCode}");
     }
 
     /**

@@ -28,7 +28,7 @@ class TeacherController extends Controller
         $students = User::where('role', 'student')->orderBy('created_at', 'desc')->get();
 
         // 2. Approved Courses for this teacher
-        $approvedCourses = Course::where('user_id', $teacherId)
+        $approvedCourses = Course::with('codes')->where('user_id', $teacherId)
             ->where('status', 'approved')
             ->orderBy('approved_at', 'desc')
             ->get();
@@ -51,8 +51,14 @@ class TeacherController extends Controller
         }
 
         // 3. Submissions for Approval (Pending, Returned, Draft)
-        $submissions = Course::where('user_id', $teacherId)
+        $submissions = Course::with('codes')->where('user_id', $teacherId)
             ->whereIn('status', ['pending', 'returned', 'draft'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        // Returned Courses for prominent alert banner notification
+        $returnedCourses = Course::where('user_id', $teacherId)
+            ->where('status', 'returned')
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -66,6 +72,7 @@ class TeacherController extends Controller
             'students',
             'approvedCourses',
             'submissions',
+            'returnedCourses',
             'totalStudentsCount',
             'pendingApprovalsCount'
         ));

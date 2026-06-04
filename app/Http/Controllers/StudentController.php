@@ -31,6 +31,11 @@ class StudentController extends Controller
             return back()->with('error', 'Invalid activation code.');
         }
 
+        $course = $courseCode->course;
+        if (!$course || $course->status !== 'approved' || !$course->is_active) {
+            return back()->with('error', 'This course is currently not available.');
+        }
+
         $alreadyActivated = StudentCourse::where('user_id', Auth::id())
             ->where('course_id', $courseCode->course_id)
             ->exists();
@@ -54,9 +59,9 @@ class StudentController extends Controller
             ->where('course_id', $course->id)
             ->exists();
 
-        if (!$isActivated) {
+        if (!$isActivated || $course->status !== 'approved' || !$course->is_active) {
             return redirect()->route('student.dashboard')
-                ->with('error', 'You need to activate this course first.');
+                ->with('error', 'This course is currently not available.');
         }
 
         $course->load([

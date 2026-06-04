@@ -51,6 +51,9 @@ Route::post('/email/verification-notification', function (Request $request) {
 // Dashboards Protected by Auth and Roles
 Route::middleware(['auth'])->group(function () {
 
+    Route::get('/api/courses/status-check', [AdminController::class, 'coursesStatusCheck'])
+        ->name('courses.statusCheck');
+
     // Student Dashboard
     Route::middleware(['role:student'])->group(function () {
         Route::get('/student/dashboard', [StudentController::class, 'dashboard'])
