@@ -6,7 +6,6 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\StudentController;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 
 // Landing page redirection
@@ -23,38 +22,86 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Email Verification Routes
-Route::get('/email/verify', function () {
-    return view('auth.verify-email');
-})->middleware('auth')->name('verification.notice');
 
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill();
-
-    if ($request->user()->role === 'admin') {
-        return redirect('/admin/dashboard');
-    }
-
-    if ($request->user()->role === 'teacher') {
-        return redirect('/teacher/dashboard');
-    }
-
-    return redirect('/student/dashboard');
-})->middleware(['auth', 'signed'])->name('verification.verify');
-
-Route::post('/email/verification-notification', function (Request $request) {
-    $request->user()->sendEmailVerificationNotification();
-    return back()->with('message', 'Verification link sent!');
-})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
-
-
-// Dashboards Protected by Auth and Roles
+// =========================================================================
+// CUSTOM OTP EMAIL VERIFICATION ROUTES (Certly Engine)
+// =========================================================================
 Route::middleware(['auth'])->group(function () {
+    
+    // 1. View where the user inputs the 6-digit code
+    Route::get('/email/verify', function () {
+        return view('auth.verify-email');
+    })->name('verification.notice');
+
+    // 2. Handler to check the verification code submitted by the user
+    Route::post('/email/verify-code', function (Request $request) {
+        $request->validate([
+            'code' => 'required|numeric|digits:6',
+        ]);
+
+        $user = $request->user();
+
+        // Strict integer casting to prevent type-mismatch bugs
+        if ((int)$request->code === (int)$user->verification_code) {
+            
+            // Set the current timestamp
+            $now = now();
+
+            // FORCE UPDATE both columns directly to bypass mass-assignment issues
+            $user->email_verified_at = $now;
+            $user->verified_at = $now;       // Updates your custom verified_at column!
+            $user->verification_code = null; // Flush OTP code
+            $user->save(); 
+
+            // Log the user out immediately
+            Illuminate\Support\Facades\Auth::logout();
+
+            // Invalidate and regenerate session tokens for security
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            // Redirect cleanly back to login page
+            return redirect('/login')->with('success', 'Your account has been successfully verified! Please log in.');
+        }
+
+        // Return back if the code is invalid
+        return back()->withErrors(['code' => 'The verification code you entered is invalid. Please click resend if needed.']);
+    })->name('verification.verify_code');
+
+    // 3. Resend OTP Route
+    Route::post('/email/verification-notification', function (Request $request) {
+        $otpCode = rand(100000, 999990);
+        $user = $request->user();
+        
+        $user->update(['verification_code' => $otpCode]);
+
+        // Send standard automated raw template in English
+        Illuminate\Support\Facades\Mail::raw("Hello {$user->name}!\n\nYour new Certly account verification code is: {$otpCode}\n\nPlease input this code to verify your account.", function ($message) use ($user) {
+            $message->to($user->email)
+                    ->subject('Certly - Resend Verification Code');
+        });
+
+        return back()->with('message', 'A new verification code has been sent to your email address!');
+    })->middleware(['throttle:6,1'])->name('verification.send');
+    
+});
+
+
+// =========================================================================
+// DASHBOARDS PROTECTED BY AUTH, ROLES, VERIFICATION & CACHE CONTROLS
+// =========================================================================
+Route::middleware([
+    'auth', 
+    'verified', 
+    'cache.headers:no_store;no_cache;must_revalidate;max_age=0'
+])->group(function () {
 
     Route::get('/api/courses/status-check', [AdminController::class, 'coursesStatusCheck'])
         ->name('courses.statusCheck');
 
-    // Student Dashboard
+    // ---------------------------------------------------------------------
+    // Student Dashboard & Features
+    // ---------------------------------------------------------------------
     Route::middleware(['role:student'])->group(function () {
         Route::get('/student/dashboard', [StudentController::class, 'dashboard'])
             ->name('student.dashboard');
@@ -72,7 +119,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('student.courseviewer.submitQuiz');
     });
 
+    // ---------------------------------------------------------------------
     // Teacher Dashboard & Course Management
+    // ---------------------------------------------------------------------
     Route::middleware(['role:teacher'])->group(function () {
         Route::get('/teacher/dashboard', [TeacherController::class, 'index'])
             ->name('teacher.dashboard');
@@ -122,7 +171,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('teacher.courses.unlockQuiz');
     });
 
-    // Admin Dashboard Group
+    // ---------------------------------------------------------------------
+    // Admin Dashboard & Configurations Group
+    // ---------------------------------------------------------------------
     Route::middleware(['role:admin'])->group(function () {
         Route::get('/admin/dashboard', [AdminController::class, 'index'])
             ->name('admin.dashboard');
@@ -130,7 +181,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/approvals', [AdminController::class, 'approvalsHub'])
             ->name('admin.approvals');
 
-        // Dapat POST ito, hindi GET!
         Route::post('/admin/courses/{id}/approve', [AdminController::class, 'approveCourse'])->name('admin.courses.approve');
         Route::post('/admin/courses/{id}/reject', [AdminController::class, 'rejectCourse'])->name('admin.courses.reject');
 

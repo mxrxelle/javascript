@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Certly Login</title>
+    <title>Verify Email - Certly</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -49,25 +49,13 @@
             gap:14px;
         }
 
-        .logo-box{
-            width:68px;
-            height:68px;
-            background:var(--accent);
-            border-radius:14px;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            font-size:42px;
-            color:var(--primary);
-        }
-
         .logo-text{
             font-size:42px;
             font-weight:600;
             color:var(--primary);
         }
 
-        .login-card{
+        .verify-card{
             background:white;
             border:3px solid var(--primary);
             border-radius:25px;
@@ -75,11 +63,19 @@
             box-shadow:0 10px 20px rgba(0,0,0,.08);
         }
 
-        .login-title{
+        .verify-title{
             text-align:center;
             color:var(--primary);
-            font-size:60px;
+            font-size:52px;
             font-weight:700;
+            margin-bottom:20px;
+        }
+
+        .verify-subtitle{
+            text-align:center;
+            font-size:18px;
+            color:#555;
+            line-height:1.6;
             margin-bottom:40px;
         }
 
@@ -89,23 +85,23 @@
             margin-bottom:10px;
         }
 
-        .form-control,
-        .form-select{
+        .form-control{
             height:72px;
             border-radius:18px;
             border:1px solid #d7d7d7;
             background:#f8fafc;
-            font-size:18px;
-            padding-left:22px;
+            font-size:24px;
+            letter-spacing: 8px;
+            text-indent: 8px;
         }
 
-        .form-control:focus,
-        .form-select:focus{
+        .form-control:focus{
             box-shadow:none;
             border-color:var(--primary);
+            background:#white;
         }
 
-        .login-btn{
+        .verify-btn{
             width:100%;
             height:72px;
             border:none;
@@ -118,54 +114,58 @@
             transition:.2s;
         }
 
-        .login-btn:hover{
+        .verify-btn:hover{
             opacity:.9;
         }
 
-        .forgot-link{
-            display:block;
-            text-align:center;
-            margin-top:25px;
-            text-decoration:none;
-            color:#f0ad00;
-            font-size:18px;
+        .action-links-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 35px;
+            padding-top: 25px;
+            border-top: 1px solid #e2e8f0;
         }
 
-        .signup-text{
-            text-align:center;
-            margin-top:35px;
-            font-size:18px;
-            color:#555;
+        .utility-link-btn{
+            background: none;
+            border: none;
+            color: #f0ad00;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            padding: 0;
+            transition: .2s;
         }
 
-        .signup-link{
-            color:#f0ad00;
-            text-decoration:none;
-            font-weight:600;
+        .utility-link-btn:hover{
+            opacity: 0.8;
+        }
+
+        .utility-link-btn.text-muted{
+            color: #777 !important;
         }
 
         .alert{
             border-radius:14px;
+            font-size: 16px;
         }
 
         @media(max-width:768px){
-
-            .login-card{
+            .verify-card{
                 padding:30px;
             }
 
-            .login-title{
-                font-size:42px;
+            .verify-title{
+                font-size:36px;
+            }
+
+            .verify-subtitle{
+                font-size:16px;
             }
 
             .logo-text{
                 font-size:32px;
-            }
-
-            .logo-box{
-                width:58px;
-                height:58px;
-                font-size:34px;
             }
         }
     </style>
@@ -174,7 +174,6 @@
 
 <div class="page-container">
 
-    <!-- Logo -->
     <div class="logo-wrapper">
         <a href="{{ url('/') }}" class="logo-link">
             <img src="{{ asset('images/certly-logo.png') }}" alt="Certly Logo" class="logo-img" style="width: 68px; height: 68px; object-fit: contain;">
@@ -182,74 +181,59 @@
         </a>
     </div>
 
-    <!-- Success Message -->
-    @if (session('success'))
-        <div class="alert alert-success mt-3 text-center small">
-            {{ session('success') }}
+    @if (session('message'))
+        <div class="alert alert-success mb-4 text-center">
+            {{ session('message') }}
         </div>
     @endif
 
-    <!-- Errors -->
     @if($errors->any())
-        <div class="alert alert-danger mb-4">
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+        <div class="alert alert-danger mb-4 text-center">
+            @foreach($errors->all() as $error)
+                {{ $error }}
+            @endforeach
         </div>
     @endif
 
-    <!-- Login Card -->
-    <div class="login-card">
+    <div class="verify-card">
 
-        <h1 class="login-title">Welcome Back</h1>
+        <h1 class="verify-title">Verify Your Account</h1>
+        <p class="verify-subtitle">
+            We have sent a <strong>6-digit Verification Code</strong> to your registered email address. Please check your inbox and enter the security token below.
+        </p>
 
-        <form action="{{ url('/login') }}" method="POST">
+        <form method="POST" action="{{ route('verification.verify_code') }}">
             @csrf
 
-            <!-- Email -->
-            <div class="mb-4">
-                <label class="form-label">Email Address</label>
-                <input
-                    type="email"
-                    name="email"
-                    class="form-control"
-                    placeholder="your.email@example.com"
-                    value="{{ old('email') }}"
-                    required
+            <div class="mb-4 text-center">
+                <label class="form-label d-block text-start">Verification Code</label>
+                <input 
+                    type="text" 
+                    name="code" 
+                    class="form-control text-center fw-bold @error('code') is-invalid @enderror" 
+                    placeholder="000000" 
+                    maxlength="6" 
+                    required 
+                    autocomplete="off"
                 >
             </div>
 
-            <!-- Password -->
-            <div class="mb-4">
-                <label class="form-label">Password</label>
-                <input
-                    type="password"
-                    name="password"
-                    class="form-control"
-                    placeholder="Enter your password"
-                    required
-                >
-            </div>
-
-
-            <button type="submit" class="login-btn">
-                Log In
+            <button type="submit" class="verify-btn">
+                Verify Account
             </button>
-
-            <a href="#" class="forgot-link">
-                Forgot Password?
-            </a>
-
-            <div class="signup-text">
-                Don't have an account?
-                <a href="{{ route('register') }}" class="signup-link">
-                    Sign Up
-                </a>
-            </div>
-
         </form>
+
+        <div class="action-links-container">
+            <form method="POST" action="{{ route('verification.send') }}">
+                @csrf
+                <button type="submit" class="utility-link-btn">Resend Code</button>
+            </form>
+
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="utility-link-btn text-muted">Log Out</button>
+            </form>
+        </div>
 
     </div>
 
