@@ -58,20 +58,23 @@ class StudentController extends Controller
         }
 
         StudentCourse::create([
-            'user_id' => Auth::id(),
+            'user_id'   => Auth::id(),
             'course_id' => $courseCode->course_id,
-            'progress' => 0,
+            'progress'  => 0,
         ]);
 
         return back()->with('success', 'Course activated successfully!');
     }
 
     /**
-     * View a course along with modules, lessons, PDFs, and YouTube videos
+     * View a course along with modules, lessons, PDFs, and YouTube videos.
+     * Passes quiz attempt counts so the frontend can render locked states on load.
      */
     public function courseViewer(Course $course)
     {
-        $isActivated = StudentCourse::where('user_id', Auth::id())
+        $studentId = Auth::id();
+
+        $isActivated = StudentCourse::where('user_id', $studentId)
             ->where('course_id', $course->id)
             ->exists();
 
@@ -80,44 +83,79 @@ class StudentController extends Controller
                 ->with('error', 'This course is currently not available.');
         }
 
-        // Load modules and lessons with ordering and lesson files (PDFs, presentations, etc.)
+        // Load modules and lessons
         $course->load([
             'modules' => function ($query) {
                 $query->orderBy('sort_order');
             },
             'modules.lessons' => function ($query) {
-                // We will sort them strictly in PHP to structure: presentations/PDFs, then videos, then quiz
                 $query->orderBy('sort_order');
             },
             'modules.lessons.files'
         ]);
 
         // Get completed lessons for this student
-        $completedLessonIds = StudentProgress::where('student_id', Auth::id())
+        $completedLessonIds = StudentProgress::where('student_id', $studentId)
             ->whereNotNull('completed_at')
             ->pluck('lesson_id')
             ->toArray();
 
-        // Sort lessons inside each module according to strict redesign rules:
-        // 1. presentations/PDFs (type: presentation, pdf, reading)
-        // 2. videos (type: video)
-        // 3. quizzes (type: quiz)
+        // Sort lessons inside each module
         foreach ($course->modules as $module) {
             $sortedLessons = $module->lessons->sortBy(function ($lesson) {
-                if (in_array($lesson->type, ['pdf', 'presentation', 'reading'])) {
-                    return 1;
-                } elseif ($lesson->type === 'video') {
-                    return 2;
-                } elseif ($lesson->type === 'quiz') {
-                    return 3;
-                }
+                if (in_array($lesson->type, ['pdf', 'presentation', 'reading'])) return 1;
+                elseif ($lesson->type === 'video') return 2;
+                elseif ($lesson->type === 'quiz') return 3;
                 return 4;
             })->values();
-
             $module->setRelation('lessons', $sortedLessons);
         }
 
-        return view('student.courseviewer', compact('course', 'completedLessonIds'));
+        // Collect all lesson IDs for this course
+        $allLessonIds = $course->modules->flatMap(fn($m) => $m->lessons->pluck('id'))->toArray();
+
+        // Build quiz attempt summary per lesson: { lessonId => { total, best_score, ever_passed } }
+        $quizAttemptData = [];
+        if (!empty($allLessonIds)) {
+            $attemptRows = QuizAttempt::where('student_id', $studentId)
+                ->whereIn('lesson_id', $allLessonIds)
+                ->selectRaw('lesson_id, COUNT(*) as total, MAX(score) as best_score, MAX(CAST(passed AS UNSIGNED)) as ever_passed')
+                ->groupBy('lesson_id')
+                ->get();
+
+            foreach ($attemptRows as $row) {
+                $quizAttemptData[$row->lesson_id] = [
+                    'total'       => (int) $row->total,
+                    'best_score'  => (int) $row->best_score,
+                    'ever_passed' => (bool) $row->ever_passed,
+                ];
+            }
+        }
+
+        return view('student.courseviewer', compact('course', 'completedLessonIds', 'quizAttemptData'));
+    }
+
+    /**
+     * Return quiz attempt status for a single lesson (used for checking lock status)
+     */
+    public function quizStatus(Lesson $lesson)
+    {
+        $studentId = Auth::id();
+        $attempts = QuizAttempt::where('student_id', $studentId)
+            ->where('lesson_id', $lesson->id)
+            ->orderBy('attempt_number')
+            ->get();
+
+        $total      = $attempts->count();
+        $bestScore  = $attempts->max('score') ?? 0;
+        $everPassed = $attempts->where('passed', true)->isNotEmpty();
+
+        return response()->json([
+            'total'       => $total,
+            'best_score'  => $bestScore,
+            'ever_passed' => $everPassed,
+            'locked'      => $total >= 3,
+        ]);
     }
 
     /**
@@ -130,21 +168,18 @@ class StudentController extends Controller
         ]);
 
         $studentId = Auth::id();
-        $lessonId = $request->lesson_id;
+        $lessonId  = $request->lesson_id;
 
-        // Record in student_progress table
         StudentProgress::updateOrCreate(
             ['student_id' => $studentId, 'lesson_id' => $lessonId],
             ['completed_at' => now()]
         );
 
-        // Record in student_lesson_progress table for backwards compatibility
         StudentLessonProgress::updateOrCreate(
             ['user_id' => $studentId, 'lesson_id' => $lessonId],
             ['completed' => true]
         );
 
-        // Update overall course progress
         $this->updateCourseProgress($studentId, $course);
 
         return response()->json([
@@ -154,20 +189,34 @@ class StudentController extends Controller
     }
 
     /**
-     * Grade and submit a quiz
+     * Grade and submit a quiz — enforces 3-attempt maximum
      */
     public function submitQuiz(Request $request, Course $course)
     {
         $request->validate([
             'lesson_id' => 'required|exists:lessons,id',
-            'answers' => 'nullable|array',
+            'answers'   => 'nullable|array',
         ]);
 
-        $studentId = Auth::id();
-        $lessonId = $request->lesson_id;
+        $studentId  = Auth::id();
+        $lessonId   = $request->lesson_id;
         $submittedAnswers = $request->answers ?? [];
 
-        // Load only the submitted questions so grading matches the randomized subset
+        // ── Attempt gate ─────────────────────────────────────────────────────
+        $existingAttemptCount = QuizAttempt::where('student_id', $studentId)
+            ->where('lesson_id', $lessonId)
+            ->count();
+
+        if ($existingAttemptCount >= 3) {
+            return response()->json([
+                'success' => false,
+                'locked'  => true,
+                'error'   => 'Maximum attempts reached. This quiz is locked.',
+            ], 403);
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
+        // Load only the submitted questions
         $submittedQuestionIds = array_map('intval', array_keys($submittedAnswers));
         if (!empty($submittedQuestionIds)) {
             $questions = QuizQuestion::with('choices')
@@ -179,7 +228,7 @@ class StudentController extends Controller
         }
 
         if ($questions->isEmpty()) {
-            // If quiz has no questions, mark as passed automatically
+            // No questions — auto-pass
             StudentProgress::updateOrCreate(
                 ['student_id' => $studentId, 'lesson_id' => $lessonId],
                 ['completed_at' => now()]
@@ -191,44 +240,42 @@ class StudentController extends Controller
             $this->updateCourseProgress($studentId, $course);
 
             return response()->json([
-                'success' => true,
-                'passed' => true,
-                'score' => 0,
-                'total' => 0,
-                'percentage' => 100,
+                'success'        => true,
+                'passed'         => true,
+                'score'          => 0,
+                'total'          => 0,
+                'percentage'     => 100,
+                'attempt_number' => $existingAttemptCount + 1,
+                'attempts_used'  => $existingAttemptCount + 1,
+                'max_attempts'   => 3,
+                'best_score'     => 100,
             ]);
         }
 
         $correctCount = 0;
-        $feedback = [];
+        $feedback     = [];
 
         foreach ($questions as $question) {
-            $correctChoice = $question->choices->firstWhere('is_correct', true);
+            $correctChoice   = $question->choices->firstWhere('is_correct', true);
             $correctChoiceId = $correctChoice ? $correctChoice->id : null;
-            $submittedChoiceId = isset($submittedAnswers[$question->id]) ? (int)$submittedAnswers[$question->id] : null;
+            $submittedChoiceId = isset($submittedAnswers[$question->id])
+                ? (int) $submittedAnswers[$question->id]
+                : null;
 
             $isCorrect = ($correctChoiceId !== null && $submittedChoiceId === $correctChoiceId);
-            if ($isCorrect) {
-                $correctCount++;
-            }
+            if ($isCorrect) $correctCount++;
 
             $feedback[$question->id] = [
-                'is_correct' => $isCorrect,
-                'correct_choice_id' => $correctChoiceId,
+                'is_correct'          => $isCorrect,
+                'correct_choice_id'   => $correctChoiceId,
                 'submitted_choice_id' => $submittedChoiceId,
             ];
         }
 
         $totalQuestions = $questions->count();
-        $percentage = round(($correctCount / $totalQuestions) * 100);
-        
-        // Passing threshold is 60%
-        $passed = ($percentage >= 60);
-
-        // Record this quiz attempt and per-question answers
-        $attemptNumber = QuizAttempt::where('student_id', $studentId)
-            ->where('lesson_id', $lessonId)
-            ->count() + 1;
+        $percentage     = round(($correctCount / $totalQuestions) * 100);
+        $passed         = ($percentage >= 60);
+        $attemptNumber  = $existingAttemptCount + 1;
 
         $attempt = QuizAttempt::create([
             'student_id'     => $studentId,
@@ -260,13 +307,21 @@ class StudentController extends Controller
             $this->updateCourseProgress($studentId, $course);
         }
 
+        // Compute best score across all attempts including this one
+        $bestScore = QuizAttempt::where('student_id', $studentId)
+            ->where('lesson_id', $lessonId)
+            ->max('score');
+
         return response()->json([
-            'success' => true,
-            'passed' => $passed,
-            'score' => $correctCount,
-            'total' => $totalQuestions,
-            'percentage' => $percentage,
+            'success'        => true,
+            'passed'         => $passed,
+            'score'          => $correctCount,
+            'total'          => $totalQuestions,
+            'percentage'     => $percentage,
             'attempt_number' => $attemptNumber,
+            'attempts_used'  => $attemptNumber,
+            'max_attempts'   => 3,
+            'best_score'     => (int) $bestScore,
         ]);
     }
 
@@ -275,15 +330,12 @@ class StudentController extends Controller
      */
     private function updateCourseProgress($studentId, Course $course)
     {
-        // Get all lesson IDs in this course
         $lessonIds = Lesson::whereIn('module_id', function ($query) use ($course) {
             $query->select('id')->from('modules')->where('course_id', $course->id);
         })->pluck('id')->toArray();
 
         $totalCount = count($lessonIds);
-        if ($totalCount === 0) {
-            return;
-        }
+        if ($totalCount === 0) return;
 
         $completedCount = StudentProgress::where('student_id', $studentId)
             ->whereIn('lesson_id', $lessonIds)

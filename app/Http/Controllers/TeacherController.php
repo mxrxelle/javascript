@@ -435,6 +435,10 @@ class TeacherController extends Controller
             $q->where('course_id', $course->id);
         })->count();
 
+        $quizLessonIds = Lesson::whereHas('module', function($q) use ($course) {
+            $q->where('course_id', $course->id);
+        })->where('type', 'quiz')->pluck('id');
+
         foreach ($students as $enrollment) {
             $user = $enrollment->user;
             $completedCount = $user->studentProgresses()
@@ -452,6 +456,28 @@ class TeacherController extends Controller
                 $enrollment->status = 'In Progress';
             } else {
                 $enrollment->status = 'Not Started';
+            }
+
+            // Quiz attempt data
+            if ($quizLessonIds->isNotEmpty()) {
+                $attempts = \App\Models\QuizAttempt::where('student_id', $user->id)
+                    ->whereIn('lesson_id', $quizLessonIds)
+                    ->get();
+                $enrollment->quiz_takes = $attempts->count();
+                $enrollment->quiz_best_score = $attempts->max('score') ?? 0;
+                $enrollment->quiz_ever_passed = $attempts->where('passed', true)->isNotEmpty();
+                $enrollment->quiz_locked = ($attempts->groupBy('lesson_id')
+                    ->filter(function($g) { return $g->count() >= 3; })->isNotEmpty())
+                    && !$enrollment->quiz_ever_passed;
+                // Latest attempt score for the Module Score column
+                $latestAttempt = $attempts->sortByDesc('submitted_at')->first();
+                $enrollment->latest_quiz_score = $latestAttempt ? $latestAttempt->score : null;
+            } else {
+                $enrollment->quiz_takes = 0;
+                $enrollment->quiz_best_score = 0;
+                $enrollment->quiz_ever_passed = false;
+                $enrollment->quiz_locked = false;
+                $enrollment->latest_quiz_score = null;
             }
         }
 
@@ -493,6 +519,26 @@ class TeacherController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Pass back max attempts to the UI
+        $attempts = $attempts->map(function ($attempt) {
+            $attempt->max_attempts = 3;
+            $attempt->is_locked = $attempt->attempt_number >= 3 && !$attempt->passed;
+            return $attempt;
+        });
+
         return response()->json($attempts);
+    }
+
+    public function unlockQuiz(Course $course, Lesson $lesson, User $student)
+    {
+        if ($course->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+        
+        \App\Models\QuizAttempt::where('student_id', $student->id)
+            ->where('lesson_id', $lesson->id)
+            ->delete();
+            
+        return response()->json(['success' => true]);
     }
 }

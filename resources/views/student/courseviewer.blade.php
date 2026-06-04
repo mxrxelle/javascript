@@ -675,6 +675,10 @@
     const submitQuizUrl = "{{ route('student.courseviewer.submitQuiz', $course->id) }}";
     const csrfToken = "{{ csrf_token() }}";
 
+    // Quiz attempt tracking: { lessonId: { total, best_score, ever_passed } }
+    let quizAttemptData = @json($quizAttemptData);
+    const MAX_ATTEMPTS = 3;
+
     // Application state
     let activeIndex = -1;
     let quizStates = {}; // Stores quiz results and states locally: { lessonId: { currentQuestionIndex: 0, answers: {}, result: null } }
@@ -800,6 +804,10 @@
             const isLocked = isLessonLocked(lesson.id, lesson.type);
             const isCompleted = completedLessonIds.includes(Number(lesson.id));
 
+            // Check if this is a quiz that has hit max attempts
+            const isQuizExhausted = lesson.type === 'quiz' &&
+                (quizAttemptData[lesson.id]?.total ?? 0) >= MAX_ATTEMPTS;
+
             // Update DOM attributes and classes
             if (isLocked) {
                 topicEl.classList.add("locked");
@@ -811,6 +819,9 @@
                 
                 if (isCompleted) {
                     document.getElementById(`status-icon-${lesson.id}-${lesson.type}`).innerHTML = '<span style="font-size: 16px;">✅</span>';
+                } else if (isQuizExhausted) {
+                    // Show lock icon in sidebar for quiz with exhausted attempts
+                    document.getElementById(`status-icon-${lesson.id}-${lesson.type}`).textContent = "🔒";
                 } else {
                     document.getElementById(`status-icon-${lesson.id}-${lesson.type}`).textContent = lesson.icon;
                 }
@@ -927,6 +938,14 @@
     // Quiz dynamic handler
     function renderQuiz(lesson) {
         const view = document.getElementById("lessonContentView");
+
+        // ── Check locked state (max attempts reached) ────────────────────────
+        const attemptInfo = quizAttemptData[lesson.id] || { total: 0, best_score: 0, ever_passed: false };
+        if (attemptInfo.total >= MAX_ATTEMPTS && !quizStates[lesson.id]?.result) {
+            renderQuizLocked(lesson, attemptInfo);
+            return;
+        }
+        // ─────────────────────────────────────────────────────────────────────
         
         // Initialize state if not present
         if (!quizStates[lesson.id]) {
@@ -1094,6 +1113,14 @@
         .then(data => {
             if (data.success) {
                 state.result = data;
+
+                // Update local attempt tracking
+                const prevInfo = quizAttemptData[lessonId] || { total: 0, best_score: 0, ever_passed: false };
+                quizAttemptData[lessonId] = {
+                    total:       data.attempts_used,
+                    best_score:  data.best_score,
+                    ever_passed: prevInfo.ever_passed || data.passed,
+                };
                 
                 // Add lesson id to completed array if passed
                 if (data.passed) {
@@ -1105,6 +1132,10 @@
                 recalculateLocks();
                 renderQuiz(lesson);
                 updateBottomControls();
+            } else if (data.locked) {
+                // Server rejected — already locked
+                const attemptInfo = quizAttemptData[lessonId] || { total: MAX_ATTEMPTS, best_score: 0, ever_passed: false };
+                renderQuizLocked(lesson, attemptInfo);
             } else {
                 showToast(data.error || "An error occurred while submitting your answers.");
             }
@@ -1116,40 +1147,102 @@
     }
 
     function renderQuizResult(lesson, result) {
-        const view  = document.getElementById("lessonContentView");
+        const view = document.getElementById("lessonContentView");
+        const attemptsUsed = result.attempts_used || result.attempt_number || 1;
+        const maxAttempts  = result.max_attempts  || MAX_ATTEMPTS;
+        const attemptsLeft = maxAttempts - attemptsUsed;
+        const isLocked     = attemptsUsed >= maxAttempts;
+        const bestScore    = result.best_score ?? result.percentage;
+
+        // Build retake / locked section
+        let actionHtml = '';
+        if (result.passed) {
+            actionHtml = `<div style="color:#10b981;font-weight:700;font-size:16px;margin-top:8px;">✓ Module Lock Cleared</div>`;
+        } else if (isLocked) {
+            actionHtml = `
+                <div style="margin-top:16px;padding:14px 20px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:14px;font-weight:600;">
+                    🔒 No retakes remaining. Contact your facilitator for assistance.
+                </div>`;
+        } else {
+            actionHtml = `
+                <button class="quiz-btn quiz-btn-primary" onclick="retryQuiz(${lesson.id})" style="margin-top:8px;">
+                    Retake Quiz
+                </button>
+                <p style="font-size:13px;color:#64748b;margin-top:10px;">
+                    You have <strong>${attemptsLeft}</strong> retake${attemptsLeft !== 1 ? 's' : ''} remaining.
+                </p>`;
+        }
 
         view.innerHTML = `
-            <div class="quiz-container" style="max-width: 900px;">
+            <div class="quiz-container" style="max-width:900px;">
                 <div class="quiz-result-box">
                     <h2 class="quiz-result-title ${result.passed ? 'pass' : 'fail'}">
-                        ${result.passed ? '🎉 Congratulations, You Passed!' : '❌ Quiz Not Passed'}
+                        ${result.passed ? '✅ Quiz Submitted!' : '❌ Quiz Submitted'}
                     </h2>
-                    <div class="quiz-result-score">${result.score} / ${result.total}</div>
-                    <p class="quiz-result-desc">
-                        You scored ${result.percentage}%. The passing threshold is 60%.<br>
-                        Attempt Number: <strong>${result.attempt_number}</strong><br><br>
-                        ${result.passed 
-                            ? 'Your progress has been recorded and the next module is now unlocked!' 
-                            : 'Do not worry, you can retry the evaluation when you are ready.'}
+
+                    <table style="margin:20px auto;border-collapse:collapse;text-align:left;font-size:15px;min-width:280px;">
+                        <tr><td style="padding:6px 12px;color:#64748b;font-weight:600;">Your Score</td><td style="padding:6px 12px;font-weight:700;color:#0f172a;">${result.percentage}%</td></tr>
+                        <tr><td style="padding:6px 12px;color:#64748b;font-weight:600;">Result</td><td style="padding:6px 12px;font-weight:700;color:${result.passed ? '#10b981' : '#ef4444'};">${result.passed ? 'Passed' : 'Failed'}</td></tr>
+                        <tr><td style="padding:6px 12px;color:#64748b;font-weight:600;">Correct Answers</td><td style="padding:6px 12px;font-weight:700;color:#0f172a;">${result.score} out of ${result.total}</td></tr>
+                        <tr><td style="padding:6px 12px;color:#64748b;font-weight:600;">Attempt</td><td style="padding:6px 12px;font-weight:700;color:#0f172a;">${attemptsUsed} of ${maxAttempts}</td></tr>
+                    </table>
+
+                    ${actionHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderQuizLocked(lesson, attemptInfo) {
+        const view = document.getElementById("lessonContentView");
+        const everPassed = attemptInfo.ever_passed;
+        const bestScore  = attemptInfo.best_score ?? 0;
+
+        let footerHtml = '';
+        if (everPassed) {
+            footerHtml = `
+                <div style="color:#10b981;font-weight:700;font-size:15px;margin-top:12px;">✓ You passed this quiz on a previous attempt.</div>
+                <p style="color:#64748b;font-size:13px;margin-top:6px;">You may continue to the next lesson.</p>`;
+        } else {
+            footerHtml = `
+                <div style="margin-top:16px;padding:14px 20px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:14px;font-weight:600;">
+                    Contact your facilitator for assistance to unlock this quiz.
+                </div>`;
+        }
+
+        view.innerHTML = `
+            <div class="quiz-container" style="max-width:900px;">
+                <div class="quiz-result-box">
+                    <div style="font-size:48px;margin-bottom:8px;">🔒</div>
+                    <h2 class="quiz-result-title fail">Quiz Locked</h2>
+                    <p style="color:#64748b;font-size:15px;margin-bottom:20px;">
+                        You have used all ${MAX_ATTEMPTS} attempts for this quiz.
                     </p>
-                    
-                    ${!result.passed ? `
-                        <button class="quiz-btn quiz-btn-primary" onclick="retryQuiz(${lesson.id})">
-                            Retry Evaluation Quiz
-                        </button>
-                    ` : `
-                        <div style="color: #10b981; font-weight: 700;">✓ Module Lock Cleared</div>
-                    `}
+
+                    <table style="margin:0 auto 16px;border-collapse:collapse;text-align:left;font-size:15px;min-width:260px;">
+                        <tr><td style="padding:6px 12px;color:#64748b;font-weight:600;">Your Best Score</td><td style="padding:6px 12px;font-weight:700;color:#0f172a;">${bestScore}%</td></tr>
+                        <tr><td style="padding:6px 12px;color:#64748b;font-weight:600;">Total Attempts</td><td style="padding:6px 12px;font-weight:700;color:#0f172a;">${MAX_ATTEMPTS} of ${MAX_ATTEMPTS}</td></tr>
+                    </table>
+
+                    ${footerHtml}
                 </div>
             </div>
         `;
     }
 
     function retryQuiz(lessonId) {
+        // Guard: do not allow retry if max attempts reached
+        const attemptInfo = quizAttemptData[lessonId] || { total: 0 };
+        if (attemptInfo.total >= MAX_ATTEMPTS) {
+            const lesson = lessons.find(l => l.id === lessonId);
+            if (lesson) renderQuizLocked(lesson, attemptInfo);
+            return;
+        }
+
         quizStates[lessonId] = {
             currentQuestionIndex: 0,
-            answers: {},
-            result: null
+            answers:             {},
+            result:              null,
         };
         const lesson = lessons.find(l => l.id === lessonId);
         if (lesson) renderQuiz(lesson);

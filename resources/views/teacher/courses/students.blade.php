@@ -156,12 +156,8 @@
                             <tr>
                                 <th class="py-3 px-6 font-semibold text-sm">Student Name</th>
                                 <th class="py-3 px-6 font-semibold text-sm">Overall Progress</th>
-                                
-                                @if(request('module'))
-                                    <th class="py-3 px-6 font-semibold text-sm text-center">Module Score</th>
-                                    <th class="py-3 px-6 font-semibold text-sm text-center">Takes</th>
-                                @endif
-                                
+                                <th class="py-3 px-6 font-semibold text-sm text-center">Module Score</th>
+                                <th class="py-3 px-6 font-semibold text-sm text-center">Takes</th>
                                 <th class="py-3 px-6 font-semibold text-sm text-center">Status Tag</th>
                                 <th class="py-3 px-6 font-semibold text-sm text-right">Actions</th>
                             </tr>
@@ -175,19 +171,6 @@
                                     $tagColor = 'bg-gray-100 text-gray-600';
                                     if ($enrollment->status == 'Certified') $tagColor = 'bg-green-100 text-green-700';
                                     if ($enrollment->status == 'In Progress') $tagColor = 'bg-yellow-100 text-yellow-700';
-
-                                    // Mock logic for module scores if filtered
-                                    $modScore = null;
-                                    $modTakes = 0;
-                                    $modLocked = false;
-                                    
-                                    if(request('module')) {
-                                        // Complex logic to get actual attempt counts and best score would go here
-                                        // Using dummy values to demonstrate UI since DB data might be empty
-                                        $modScore = $progress > 50 ? rand(75, 100) : null;
-                                        $modTakes = $progress > 50 ? rand(1, 3) : 0;
-                                        if ($progress == 0) $modLocked = true;
-                                    }
                                 @endphp
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="py-4 px-6">
@@ -204,31 +187,27 @@
                                         </div>
                                     </td>
 
-                                    @if(request('module'))
-                                        <td class="py-4 px-6 text-center">
-                                            @if($modLocked)
-                                                <span class="text-gray-400 text-xs font-semibold flex items-center justify-center gap-1">
-                                                    <i data-lucide="lock" class="w-3 h-3"></i> Locked
-                                                </span>
-                                            @elseif($modScore)
-                                                <span class="text-green-600 font-bold text-sm">{{ $modScore }}%</span>
-                                            @else
-                                                <span class="text-gray-400 text-sm">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="py-4 px-6 text-center text-sm text-gray-600 font-medium">
-                                            @if(!$modLocked && $modTakes > 0)
-                                                {{ $modTakes }}
-                                            @else
-                                                -
-                                            @endif
-                                        </td>
-                                    @endif
+                                    <td class="py-4 px-6 text-center">
+                                        @if($enrollment->latest_quiz_score !== null)
+                                            <span class="text-green-600 font-bold text-sm">{{ $enrollment->latest_quiz_score }}%</span>
+                                        @else
+                                            <span class="text-gray-400 text-sm">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-4 px-6 text-center text-sm text-gray-600 font-medium">
+                                        {{ $enrollment->quiz_takes }} / 3
+                                    </td>
 
                                     <td class="py-4 px-6 text-center">
-                                        <span class="{{ $tagColor }} px-3 py-1 rounded-full text-xs font-bold tracking-wide">
-                                            {{ $enrollment->status }}
-                                        </span>
+                                        @if($enrollment->quiz_locked)
+                                            <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold tracking-wide">
+                                                🔒 Locked - Max Attempts
+                                            </span>
+                                        @else
+                                            <span class="{{ $tagColor }} px-3 py-1 rounded-full text-xs font-bold tracking-wide">
+                                                {{ $enrollment->status }}
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="py-4 px-6 text-right">
                                         <button onclick="openQuizReviewModal({{ $course->id }}, {{ $user->id }}, '{{ addslashes($user->name) }}')" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition">
@@ -267,10 +246,17 @@
                 
                 <!-- Attempt Details -->
                 <div id="attemptDetails" class="hidden">
-                    <div class="flex items-center gap-4 mb-4">
-                        <div class="text-sm font-semibold text-gray-600">Score: <span id="attemptScore" class="text-gray-900"></span>%</div>
-                        <div id="attemptStatus" class="px-3 py-1 rounded-full text-xs font-bold tracking-wide"></div>
-                        <div class="text-sm text-gray-500">Module: <span id="attemptModule"></span></div>
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <div class="flex items-center gap-4">
+                            <div class="text-sm font-semibold text-gray-600">Score: <span id="attemptScore" class="text-gray-900"></span>%</div>
+                            <div id="attemptStatus" class="px-3 py-1 rounded-full text-xs font-bold tracking-wide"></div>
+                            <div class="text-sm text-gray-500">Module: <span id="attemptModule"></span></div>
+                        </div>
+                        <div id="unlockQuizContainer" class="hidden">
+                            <button onclick="unlockStudentQuiz()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-1.5 px-4 rounded-lg text-sm transition flex items-center gap-2 border border-blue-200">
+                                <i data-lucide="unlock" class="w-4 h-4"></i> Unlock Quiz for this Student
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="overflow-x-auto border border-gray-200 rounded-lg">
@@ -376,9 +362,22 @@
             if (attempt.passed) {
                 statusBadge.textContent = 'Passed';
                 statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-green-100 text-green-700';
+            } else if (attempt.is_locked) {
+                statusBadge.innerHTML = '<i data-lucide="lock" class="w-3 h-3 inline"></i> Locked';
+                statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-red-100 text-red-700';
             } else {
                 statusBadge.textContent = 'Failed';
                 statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-red-100 text-red-700';
+            }
+
+            const unlockContainer = document.getElementById('unlockQuizContainer');
+            if (attempt.is_locked || (attempt.attempt_number >= attempt.max_attempts && !attempt.passed)) {
+                unlockContainer.classList.remove('hidden');
+                // Store data for the unlock button
+                unlockContainer.dataset.lessonId = attempt.lesson_id;
+                unlockContainer.dataset.studentId = attempt.student_id;
+            } else {
+                unlockContainer.classList.add('hidden');
             }
             
             const list = document.getElementById('attemptQuestionsList');
@@ -414,6 +413,38 @@
             });
             
             lucide.createIcons();
+        }
+
+        function unlockStudentQuiz() {
+            const container = document.getElementById('unlockQuizContainer');
+            const lessonId = container.dataset.lessonId;
+            const studentId = container.dataset.studentId;
+            const courseId = {{ $course->id }};
+            
+            if (!lessonId || !studentId) return;
+
+            if (confirm("Are you sure you want to unlock this quiz? This will reset all their attempts for this lesson.")) {
+                fetch(`/teacher/courses/${courseId}/unlock-quiz/${lessonId}/${studentId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Quiz unlocked successfully.");
+                        location.reload();
+                    } else {
+                        alert("Failed to unlock quiz.");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("An error occurred.");
+                });
+            }
         }
     </script>
 </body>

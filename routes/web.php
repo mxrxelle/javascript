@@ -116,6 +116,10 @@ Route::middleware(['auth'])->group(function () {
         // View student quiz attempts for a course
         Route::get('/teacher/courses/{course}/students/{student}/quiz-attempts', [TeacherController::class, 'studentQuizAttempts'])
             ->name('teacher.courses.student.quiz-attempts');
+
+        // Unlock quiz for a student
+        Route::post('/teacher/courses/{course}/unlock-quiz/{lesson}/{student}', [TeacherController::class, 'unlockQuiz'])
+            ->name('teacher.courses.unlockQuiz');
     });
 
     // Admin Dashboard Group
