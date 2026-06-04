@@ -13,14 +13,13 @@
             font-family: 'Inter', sans-serif;
             font-size: 16px;
         }
-        /* Sidebar layout pattern mula sa Dashboard mo */
         .sidebar {
             width: 280px;
             height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
-            background-color: #002855; /* Certly Dark Navy Blue */
+            background-color: #002855;
             color: white;
             padding-top: 35px;
             z-index: 100;
@@ -32,12 +31,6 @@
             display: flex;
             align-items: center;
             gap: 12px;
-        }
-        .sidebar .brand span.logo-box {
-            background-color: #ffca28; /* Certly Yellow Accent */
-            color: #002855;
-            padding: 4px 16px;
-            border-radius: 10px;
         }
         .sidebar-menu {
             list-style: none;
@@ -84,7 +77,6 @@
         .logout-btn:hover {
             color: #ff4d4d;
         }
-        /* Main Workspace Content Area mula sa Dashboard mo */
         .main-content {
             margin-left: 280px;
             padding: 50px;
@@ -166,6 +158,7 @@
                                     <td class="text-muted">{{ $course->created_at->format('M d, Y') }}</td>
                                     <td>
                                         <button 
+                                            type="button"
                                             class="btn btn-warning btn-sm fw-bold px-3 text-dark" 
                                             style="background-color: #ffca28; border: none;"
                                             onclick="openReview({{ json_encode($course->load('modules.lessons.questions.options')) }})"
@@ -188,7 +181,6 @@
         </div>
     </div>
 
-    <!-- Review Course Modal -->
     <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content" style="border-radius: 16px;">
@@ -209,17 +201,34 @@
 
                     <h6 class="fw-bold mb-2" style="color: #002855;">Course Structure & Outline:</h6>
                     <div id="modalCourseStructure" class="mb-4 p-3 bg-light rounded" style="max-height: 480px; overflow-y: auto; border: 1px solid #e2e8f0;">
-                        <!-- Dynamically populated modules/lessons -->
-                    </div>
+                        </div>
 
-                    <!-- Actions forms -->
-                    <form id="approveForm" method="POST" action="">
+                    <form id="courseActionForm" method="POST" action="">
                         @csrf
-                    </form>
+                        <input type="hidden" id="formActionType" name="action_type" value="approve">
 
-                    <form id="rejectForm" method="POST" action="">
-                        @csrf
-                        <div class="mb-3">
+                        <div id="voucherSectionContainer" class="mb-4 p-3 bg-success-subtle border border-success-subtle rounded-3">
+                            <label for="voucherQuantity" class="form-label fw-bold text-success-emphasis small d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-ticket"></i> Voucher Generation Quantity
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-muted border-end-0" style="border-radius: 10px 0 0 10px;"><i class="fa-solid fa-calculator"></i></span>
+                                <input type="number" 
+                                       id="voucherQuantity" 
+                                       name="quantity" 
+                                       class="form-control border-start-0" 
+                                       style="border-radius: 0 10px 10px 0; padding: 10px 14px;" 
+                                       placeholder="e.g., 40" 
+                                       min="1" 
+                                       max="250" 
+                                       value="40">
+                            </div>
+                            <div class="form-text text-muted-emphasis small mt-1" style="font-size: 12px;">
+                                Upon validation, the system will auto-inject these unique authentication codes directly into the facilitator's records pipeline.
+                            </div>
+                        </div>
+
+                        <div id="rejectSectionContainer" class="mb-3 d-none">
                             <label for="feedbackText" class="form-label fw-bold" style="color: #002855; font-size: 15px;">Feedback (Required for returns/rejections)</label>
                             <textarea class="form-control" id="feedbackText" name="feedback" rows="3" placeholder="Explain what the facilitator needs to change, correct, or add..."></textarea>
                         </div>
@@ -227,8 +236,8 @@
                 </div>
                 <div class="modal-footer" style="border-top: none; padding-bottom: 30px; padding-right: 30px; gap: 12px;">
                     <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal" style="border-radius: 10px; padding: 10px 20px;">Cancel</button>
-                    <button type="button" onclick="submitReturn()" class="btn btn-outline-danger fw-bold px-4" style="border-radius: 10px; padding: 10px 20px;">Return to Facilitator</button>
-                    <button type="button" onclick="submitApprove()" class="btn btn-success fw-bold px-4" style="border-radius: 10px; background-color: #28a745; border: none; padding: 10px 24px;">Approve & Publish</button>
+                    <button type="button" id="btnRejectAction" onclick="handleFormSubmission(event, 'reject')" class="btn btn-outline-danger fw-bold px-4" style="border-radius: 10px; padding: 10px 20px;">Return to Facilitator</button>
+                    <button type="button" id="btnApproveAction" onclick="handleFormSubmission(event, 'approve')" class="btn btn-success fw-bold px-4" style="border-radius: 10px; background-color: #28a745; border: none; padding: 10px 24px;">Approve & Publish</button>
                 </div>
             </div>
         </div>
@@ -243,12 +252,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             currentModal = new bootstrap.Modal(document.getElementById('reviewModal'));
             
-            // Listen for modal hide to reset active course id
             document.getElementById('reviewModal').addEventListener('hidden.bs.modal', function() {
                 activeReviewCourseId = null;
             });
 
-            // Start polling
             pollStatus();
             setInterval(pollStatus, 5000);
         });
@@ -256,8 +263,7 @@
         const modalCourseTitle = document.getElementById('modalCourseTitle');
         const modalCourseDesc = document.getElementById('modalCourseDesc');
         const modalCourseStructure = document.getElementById('modalCourseStructure');
-        const approveForm = document.getElementById('approveForm');
-        const rejectForm = document.getElementById('rejectForm');
+        const mainActionForm = document.getElementById('courseActionForm');
 
         function getYouTubeEmbedUrl(url) {
             if (!url) return null;
@@ -274,16 +280,19 @@
             modalCourseTitle.textContent = course.title;
             modalCourseDesc.textContent = course.description || 'No description provided.';
             
-            // Hide concurrency warning and enable action buttons
             document.getElementById('concurrencyWarning').classList.add('d-none');
-            document.querySelector('.btn-outline-danger[onclick="submitReturn()"]').disabled = false;
-            document.querySelector('.btn-success[onclick="submitApprove()"]').disabled = false;
+            document.getElementById('btnRejectAction').disabled = false;
+            document.getElementById('btnApproveAction').disabled = false;
             
-            // Set form action URLs
-            approveForm.action = `/admin/courses/${course.id}/approve`;
-            rejectForm.action = `/admin/courses/${course.id}/reject`;
+            // I-reset ang dynamic views pabalik sa default state (Approve Mode)
+            document.getElementById('voucherSectionContainer').classList.remove('d-none');
+            document.getElementById('rejectSectionContainer').classList.add('d-none');
+            document.getElementById('feedbackText').value = '';
+            document.getElementById('voucherQuantity').value = '40';
             
-            // Build structure HTML outline
+            // Itabi muna ang ID ng kurso para sa form route binding sa submission step
+            mainActionForm.dataset.courseId = course.id;
+            
             let html = '';
             if (course.modules && course.modules.length > 0) {
                 course.modules.forEach(mod => {
@@ -309,23 +318,9 @@
                                             <iframe src="${embedUrl}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
                                         </div>
                                     </div>`;
-                                } else if (les.youtube_url) {
-                                    detailsHtml = `
-                                    <div class="mt-1 small text-muted" style="margin-left: 28px;">
-                                        <a href="${les.youtube_url}" target="_blank" class="btn btn-sm btn-outline-primary py-0.5 px-2 text-xs"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open Video Link</a>
-                                    </div>`;
                                 }
                             } else if (les.type === 'presentation') {
                                 icon = '<i class="fa-solid fa-file-pdf text-warning me-2"></i>';
-                                if (les.presentation_path) {
-                                    let downloadUrl = `/storage/${les.presentation_path}`;
-                                    detailsHtml = `
-                                    <div class="mt-1 small text-muted" style="margin-left: 28px;">
-                                        <a href="${downloadUrl}" download class="btn btn-sm btn-outline-primary py-0.5 px-2 text-xs"><i class="fa-solid fa-download me-1"></i>Download PDF</a>
-                                        <a href="${downloadUrl}" target="_blank" class="btn btn-sm btn-outline-secondary py-0.5 px-2 text-xs ms-1"><i class="fa-solid fa-eye me-1"></i>View PDF</a>
-                                        <span class="text-secondary ms-2" style="font-size: 11px;">(${les.presentation_size || 'PPT/PDF'})</span>
-                                    </div>`;
-                                }
                             } else if (les.type === 'quiz') {
                                 icon = '<i class="fa-solid fa-circle-question text-info me-2"></i>';
                                 if (les.questions && les.questions.length > 0) {
@@ -336,39 +331,21 @@
                                         detailsHtml += `
                                         <div class="mb-3 border-bottom pb-2">
                                             <div class="fw-semibold text-dark small">${qIndex + 1}. ${q.question_text}</div>`;
-                                        
                                         if (q.options && q.options.length > 0) {
                                             detailsHtml += `<ul class="list-unstyled ms-3 mt-1 small">`;
                                             q.options.forEach(opt => {
-                                                let badge = '';
-                                                let style = 'color: #4b5563;';
-                                                if (opt.is_correct) {
-                                                    badge = `<span class="badge bg-success-subtle text-success border border-success-subtle ms-2 px-1.5 py-0.5" style="font-size: 9px;"><i class="fa-solid fa-check me-0.5"></i>Correct Answer</span>`;
-                                                    style = 'font-weight: 600; color: #15803d;';
-                                                }
+                                                let badge = opt.is_correct ? `<span class="badge bg-success-subtle text-success border border-success-subtle ms-2 px-1.5 py-0.5" style="font-size: 9px;">Correct</span>` : '';
+                                                let style = opt.is_correct ? 'font-weight: 600; color: #15803d;' : 'color: #4b5563;';
                                                 detailsHtml += `<li style="${style}" class="py-0.5">• ${opt.option_text} ${badge}</li>`;
                                             });
                                             detailsHtml += `</ul>`;
-                                        } else {
-                                            detailsHtml += `<div class="text-muted small ms-3 italic">No choices defined.</div>`;
                                         }
                                         detailsHtml += `</div>`;
                                     });
-                                    
                                     detailsHtml += `</div>`;
-                                } else {
-                                    detailsHtml = `
-                                    <span class="badge bg-info text-dark ms-2" style="font-size: 11px; background-color: #e0f2fe !important;">${les.quiz_questions_count} Pool Qs</span>
-                                    <div class="text-muted small italic ms-4 mt-1">No quiz questions added.</div>`;
                                 }
-                            } else if (les.type === 'reading') {
+                            } else if (les.type === 'reading' && les.content) {
                                 icon = '<i class="fa-solid fa-book-open text-success me-2"></i>';
-                                if (les.content) {
-                                    detailsHtml = `
-                                    <div class="mt-2 p-2 bg-white border rounded text-muted small" style="margin-left: 28px; white-space: pre-wrap; font-size: 12px; max-height: 120px; overflow-y: auto;">
-                                        ${les.content}
-                                    </div>`;
-                                }
                             }
 
                             html += `
@@ -380,8 +357,6 @@
                             </li>`;
                         });
                         html += `</ul>`;
-                    } else {
-                        html += `<div class="text-muted small ms-3 mt-1 italic">No lessons or subtopics inside this module.</div>`;
                     }
                     html += `</div>`;
                 });
@@ -390,21 +365,66 @@
             }
             
             modalCourseStructure.innerHTML = html;
-            document.getElementById('feedbackText').value = '';
             currentModal.show();
         }
 
-        function submitApprove() {
-            approveForm.submit();
-        }
+        // Pinag-isang controller function para iwasan ang aksidenteng GET browser routing execution
+        function handleFormSubmission(event, mode) {
+            if(event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
 
-        function submitReturn() {
-            const feedback = document.getElementById('feedbackText').value.trim();
-            if (!feedback) {
-                alert('Please provide feedback explaining why the course is being returned to the facilitator.');
+            const courseId = mainActionForm.dataset.courseId;
+            if(!courseId) {
+                alert("Course Reference Error. Please re-open the modal.");
                 return;
             }
-            rejectForm.submit();
+
+            if (mode === 'approve') {
+                // Kung nanggaling sa 'Return to Facilitator' state, buksan muna ang Voucher prompt field block
+                if (document.getElementById('voucherSectionContainer').classList.contains('d-none')) {
+                    document.getElementById('voucherSectionContainer').classList.remove('d-none');
+                    document.getElementById('rejectSectionContainer').classList.add('d-none');
+                    return;
+                }
+
+                const quantityInput = document.getElementById('voucherQuantity');
+                const quantityValue = parseInt(quantityInput.value);
+
+                if (isNaN(quantityValue) || quantityValue < 1) {
+                    alert('Please enter a valid voucher quantity (minimum of 1).');
+                    quantityInput.focus();
+                    return;
+                }
+                if (quantityValue > 250) {
+                    alert('Maximum allowed voucher generation per request batch is 250.');
+                    quantityInput.focus();
+                    return;
+                }
+
+                // Explicitly inject destination path and trigger form submit natively using strictly POST parameters
+                mainActionForm.action = `/admin/courses/${courseId}/approve`;
+                mainActionForm.submit();
+
+            } else if (mode === 'reject') {
+                // Kung unang click pa lang, itago muna ang vouchers box at ipakita ang textarea field block
+                if (document.getElementById('rejectSectionContainer').classList.contains('d-none')) {
+                    document.getElementById('rejectSectionContainer').classList.remove('d-none');
+                    document.getElementById('voucherSectionContainer').classList.add('d-none');
+                    return;
+                }
+
+                const feedback = document.getElementById('feedbackText').value.trim();
+                if (!feedback) {
+                    alert('Please provide feedback explaining why the course is being returned to the facilitator.');
+                    document.getElementById('feedbackText').focus();
+                    return;
+                }
+
+                mainActionForm.action = `/admin/courses/${courseId}/reject`;
+                mainActionForm.submit();
+            }
         }
 
         function pollStatus() {
@@ -421,12 +441,11 @@
                             const openCourseStillPending = pending.some(c => c.id === activeReviewCourseId);
                             if (!openCourseStillPending) {
                                 document.getElementById('concurrencyWarning').classList.remove('d-none');
-                                document.querySelector('.btn-outline-danger[onclick="submitReturn()"]').disabled = true;
-                                document.querySelector('.btn-success[onclick="submitApprove()"]').disabled = true;
+                                document.getElementById('btnRejectAction').disabled = true;
+                                document.getElementById('btnApproveAction').disabled = true;
                             }
                         }
                     }
-                    
                     lastPendingState = currentStateString;
                 })
                 .catch(err => console.error("Error polling statuses: ", err));

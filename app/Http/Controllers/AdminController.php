@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str; 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+use App\Models\Course;
+use App\Models\VoucherCode;
 
 class AdminController extends Controller
 {
@@ -265,36 +267,43 @@ class AdminController extends Controller
     /**
      * Approve a pending course.
      */
+
     public function approveCourse(Request $request, $id)
     {
-        $course = \App\Models\Course::findOrFail($id);
+        $request->validate([
+            'quantity' => 'required|integer|min:1|max:250'
+        ]);
+
+        $course = Course::findOrFail($id);
         
-        \Illuminate\Support\Facades\DB::transaction(function () use ($course) {
-            $course->update([
-                'status' => 'approved',
-                'approved_at' => now(),
-                'is_active' => true,
-            ]);
+        // 1. Move course status indicator to approved
+        $course->update([
+            'status' => 'approved' 
+        ]);
 
-            // Auto-generate a unique enrollment code for this course
-            if ($course->codes()->count() === 0) {
-                do {
-                    $code = 'CERT-' . strtoupper(Str::random(8));
-                } while (\App\Models\CourseCode::where('code', $code)->exists());
+        $quantity = $request->input('quantity');
+        $generatedCount = 0;
 
-                \App\Models\CourseCode::create([
-                    'course_id' => $course->id,
-                    'code' => $code,
-                    'is_used' => false,
+        // 2. Automated Generation Sequence Loop
+        while ($generatedCount < $quantity) {
+            // Generates a recognizable 12-char pattern: CERT-XXXX-XXXX
+            $code = 'CERT-' . strtoupper(Str::random(4)) . '-' . strtoupper(Str::random(4));
+
+            // Use the model layer to check for collisions inside 'voucher_codes'
+            $exists = VoucherCode::where('code', $code)->exists();
+
+            if (!$exists) {
+                VoucherCode::create([
+                    'course_id'  => $course->id,
+                    'code'       => $code,
+                    'claimed_by' => null,
+                    'claimed_at' => null, // Explicitly keep null until student redeems it
                 ]);
+                $generatedCount++;
             }
-        });
+        }
 
-        // Get the generated code to display in the success message
-        $generatedCode = $course->codes()->first()?->code;
-
-        return redirect()->route('admin.approvals')
-            ->with('success', "Course \"{$course->title}\" has been approved and published successfully! Enrollment Code: {$generatedCode}");
+        return redirect()->back()->with('success', "Course system access approved! Successfully deployed {$quantity} unique authorization voucher codes directly to the instructor workspace pipeline.");
     }
 
     /**

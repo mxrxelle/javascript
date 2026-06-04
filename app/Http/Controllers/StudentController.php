@@ -38,29 +38,45 @@ class StudentController extends Controller
             'code' => 'required|string',
         ]);
 
-        $courseCode = CourseCode::where('code', $request->code)->first();
+        // 1. Linisin ang input (gawing uppercase at alisin ang spaces para iwas typo)
+        $cleanCode = strtoupper(trim($request->code));
 
-        if (!$courseCode) {
+        // 2. Hanapin ang code kung saan ang 'claimed_by' ay NULL (ibig sabihin, hindi pa nagagamit)
+        $voucher = \App\Models\VoucherCode::where('code', $cleanCode)
+            ->whereNull('claimed_by') 
+            ->first();
+
+        // Kung walang nahanap na tugmang code o kaya ay may nakagamit na nito
+        if (!$voucher) {
             return back()->with('error', 'Invalid activation code.');
         }
 
-        $course = $courseCode->course;
+        // 3. Kunin ang kurso mula sa voucher relation
+        $course = $voucher->course;
         if (!$course || $course->status !== 'approved' || !$course->is_active) {
             return back()->with('error', 'This course is currently not available.');
         }
 
+        // 4. Suriin kung ang estudyante ay naka-enroll na dati sa kursong ito
         $alreadyActivated = StudentCourse::where('user_id', Auth::id())
-            ->where('course_id', $courseCode->course_id)
+            ->where('course_id', $voucher->course_id)
             ->exists();
 
         if ($alreadyActivated) {
             return back()->with('error', 'You already activated this course.');
         }
 
+        // 5. I-save ang enrollment confirmation record
         StudentCourse::create([
             'user_id'   => Auth::id(),
-            'course_id' => $courseCode->course_id,
+            'course_id' => $voucher->course_id,
             'progress'  => 0,
+        ]);
+
+        // 6. I-update ang voucher columns para markahang gamit na ng kasalukuyang estudyante
+        $voucher->update([
+            'claimed_by' => Auth::id(),
+            'claimed_at' => now(),
         ]);
 
         return back()->with('success', 'Course activated successfully!');

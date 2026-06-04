@@ -130,11 +130,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/approvals', [AdminController::class, 'approvalsHub'])
             ->name('admin.approvals');
 
-        Route::post('/admin/courses/{id}/approve', [AdminController::class, 'approveCourse'])
-            ->name('admin.courses.approve');
-
-        Route::post('/admin/courses/{id}/reject', [AdminController::class, 'rejectCourse'])
-            ->name('admin.courses.reject');
+        // Dapat POST ito, hindi GET!
+        Route::post('/admin/courses/{id}/approve', [AdminController::class, 'approveCourse'])->name('admin.courses.approve');
+        Route::post('/admin/courses/{id}/reject', [AdminController::class, 'rejectCourse'])->name('admin.courses.reject');
 
         Route::get('/admin/users', [AdminController::class, 'userManagement'])
             ->name('admin.users');
