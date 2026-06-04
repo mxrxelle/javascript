@@ -411,4 +411,27 @@ class TeacherController extends Controller
     {
         return redirect()->route('teacher.dashboard')->with('scroll_to', 'analytics');
     }
+
+public function uploadLessonFile(Request $request, Lesson $lesson)
+{
+    $request->validate([
+        'file' => 'required|mimes:pdf|max:10240', // 10MB max
+    ]);
+
+    $file = $request->file('file');
+    $filename = time().'_'.$file->getClientOriginalName();
+
+    // Store the file on disk
+    $path = $file->storeAs('public/presentations', $filename);
+
+    // Save metadata in database
+    $lesson->files()->create([
+        'filename' => $file->getClientOriginalName(),
+        'path' => 'presentations/'.$filename,
+        'type' => $file->getClientOriginalExtension(),
+    ]);
+
+    return back()->with('success', 'PDF uploaded successfully!');
+}
+
 }

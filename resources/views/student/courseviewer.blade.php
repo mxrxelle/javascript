@@ -51,6 +51,28 @@
         .next-btn{ background:#00336b; color:white; }
         .complete-btn{ background:#ffc62d; color:#00336b; }
         .icon{ font-size:30px; }
+
+        /* PDF styles */
+        .pdf-box {
+            width: 100%;
+            height: 620px;
+            background: #f2f4f7;
+            border: 1px solid #ddd;
+            border-radius: 18px;
+            overflow: hidden;
+            margin-bottom: 35px;
+        }
+        .pdf-box iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .lesson-section-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: #00336b;
+            margin-bottom: 18px;
+        }
     </style>
 </head>
 <body>
@@ -136,6 +158,11 @@
                 'type' => $lesson->type,
                 'content' => $lesson->content,
                 'youtube_url' => $lesson->youtube_url,
+                'files' => $lesson->files->map(fn($file) => [
+                    'path' => asset('storage/' . $file->path),
+                    'type' => $file->type,
+                    'filename' => $file->filename,
+                ]),
                 'icon' => getLessonIcon($lesson->type),
             ];
         }
@@ -172,10 +199,7 @@
     topics.forEach(topic => {
         topic.addEventListener('click', () => {
             const selectedIndex = Number(topic.dataset.index);
-
-            if (selectedIndex > unlockedIndex) {
-                return;
-            }
+            if (selectedIndex > unlockedIndex) return;
 
             currentIndex = selectedIndex;
             showLesson(currentIndex);
@@ -212,7 +236,6 @@
 
     function markCompleted(index) {
         const currentTopic = document.querySelector(`.topic[data-index="${index}"]`);
-
         if (currentTopic && !currentTopic.querySelector('.check')) {
             const check = document.createElement('div');
             check.className = 'check';
@@ -223,34 +246,22 @@
 
     function unlockTopic(index) {
         const topic = document.querySelector(`.topic[data-index="${index}"]`);
-
         if (topic) {
             topic.classList.remove('locked');
-
             const icon = topic.querySelector('.icon');
             icon.textContent = originalIcons[index];
 
             const parentModule = topic.closest('.module');
-
-            if (parentModule) {
-                parentModule.classList.add('open');
-            }
+            if (parentModule) parentModule.classList.add('open');
         }
     }
 
     function getYoutubeEmbedUrl(url) {
         if (!url) return null;
-
         let videoId = null;
-
-        if (url.includes('watch?v=')) {
-            videoId = url.split('watch?v=')[1].split('&')[0];
-        } else if (url.includes('youtu.be/')) {
-            videoId = url.split('youtu.be/')[1].split('?')[0];
-        } else if (url.includes('/embed/')) {
-            return url;
-        }
-
+        if (url.includes('watch?v=')) videoId = url.split('watch?v=')[1].split('&')[0];
+        else if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split('?')[0];
+        else if (url.includes('/embed/')) return url;
         return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
     }
 
@@ -258,12 +269,7 @@
         if (lessons.length === 0) {
             contentIcon.textContent = '🗎';
             contentTitle.textContent = 'No Lessons Available';
-            contentBody.innerHTML = `
-                <div class="lesson-description">
-                    This course has no lessons yet.
-                </div>
-            `;
-
+            contentBody.innerHTML = `<div class="lesson-description">This course has no lessons yet.</div>`;
             prevBtn.style.visibility = 'hidden';
             nextBtn.style.visibility = 'hidden';
             completeBtn.style.visibility = 'hidden';
@@ -271,83 +277,52 @@
         }
 
         const lesson = lessons[index];
-
         contentIcon.textContent = lesson.icon;
         contentTitle.textContent = lesson.title;
 
-        topics.forEach(topic => {
-            topic.classList.remove('active');
-        });
-
+        topics.forEach(topic => topic.classList.remove('active'));
         const activeTopic = document.querySelector(`.topic[data-index="${index}"]`);
+        if (activeTopic) activeTopic.classList.add('active');
 
-        if (activeTopic) {
-            activeTopic.classList.add('active');
+        // Clear previous content
+        contentBody.innerHTML = '';
 
-            const parentModule = activeTopic.closest('.module');
-
-            if (parentModule) {
-                parentModule.classList.add('open');
-            }
+        // Render PDFs first
+        if (lesson.files && lesson.files.length > 0) {
+            contentBody.innerHTML += `<div class="lesson-section-title">Files</div>`;
+            lesson.files.forEach(file => {
+                if (file.type === 'pdf') {
+                    contentBody.innerHTML += `
+                        <div class="pdf-box">
+                            <iframe src="${file.path}"></iframe>
+                        </div>
+                    `;
+                }
+            });
         }
 
-        if (lesson.type === 'video') {
+        // Render YouTube video
+        if (lesson.youtube_url) {
             const embedUrl = getYoutubeEmbedUrl(lesson.youtube_url);
-
-            contentBody.innerHTML = `
-                <div class="video-box">
-                    ${
-                        embedUrl
-                            ? `<iframe src="${embedUrl}" allowfullscreen></iframe>`
-                            : `<div class="play-icon">▷</div>`
-                    }
-                </div>
-
-                <div class="lesson-description">
-                    ${lesson.content ?? 'Watch this video lesson.'}
-                </div>
-            `;
+            contentBody.innerHTML += `<div class="lesson-section-title">Video Lesson</div>`;
+            contentBody.innerHTML += embedUrl
+                ? `<div class="video-box"><iframe src="${embedUrl}" allowfullscreen></iframe></div>`
+                : `<div class="video-box"><div class="play-icon">▷</div></div>`;
         }
 
-        if (lesson.type === 'reading') {
-            contentBody.innerHTML = `
-                <div class="reading-content">
-                    ${lesson.content ?? '<p>No reading content available.</p>'}
-                </div>
-            `;
+        // Render reading content
+        if (lesson.type === 'reading' || lesson.content) {
+            contentBody.innerHTML += `<div class="reading-content">${lesson.content ?? ''}</div>`;
         }
 
-        if (lesson.type === 'presentation') {
-            contentBody.innerHTML = `
-                <div class="reading-content">
-                    ${lesson.content ?? '<p>No presentation content available.</p>'}
-                </div>
-            `;
-        }
-
+        // Render quiz placeholder
         if (lesson.type === 'quiz') {
-            contentBody.innerHTML = `
-                <div class="lesson-description">
-                    ${lesson.content ?? 'Answer the quiz questions for this lesson.'}
-                </div>
-
+            contentBody.innerHTML += `
                 <div class="quiz-box">
                     <h3>Quiz Placeholder</h3>
-
-                    <label class="quiz-option">
-                        <input type="radio" name="quizOption">
-                        <span>Option A</span>
-                    </label>
-
-                    <label class="quiz-option">
-                        <input type="radio" name="quizOption">
-                        <span>Option B</span>
-                    </label>
-
-                    <label class="quiz-option">
-                        <input type="radio" name="quizOption">
-                        <span>Option C</span>
-                    </label>
+                    <label class="quiz-option"><input type="radio" name="quizOption"><span>Option A</span></label>
+                    <label class="quiz-option"><input type="radio" name="quizOption"><span>Option B</span></label>
+                    <label class="quiz-option"><input type="radio" name="quizOption"><span>Option C</span></label>
                 </div>
             `;
         }

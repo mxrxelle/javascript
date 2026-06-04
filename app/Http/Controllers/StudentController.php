@@ -10,6 +10,9 @@ use App\Models\StudentCourse;
 
 class StudentController extends Controller
 {
+    /**
+     * Show the student dashboard with their activated courses
+     */
     public function dashboard()
     {
         $studentCourses = StudentCourse::with('course')
@@ -19,6 +22,9 @@ class StudentController extends Controller
         return view('student.userdashboard', compact('studentCourses'));
     }
 
+    /**
+     * Activate a course using a code
+     */
     public function activateCourse(Request $request)
     {
         $request->validate([
@@ -53,6 +59,9 @@ class StudentController extends Controller
         return back()->with('success', 'Course activated successfully!');
     }
 
+    /**
+     * View a course along with modules, lessons, PDFs, and YouTube videos
+     */
     public function courseViewer(Course $course)
     {
         $isActivated = StudentCourse::where('user_id', Auth::id())
@@ -64,8 +73,15 @@ class StudentController extends Controller
                 ->with('error', 'This course is currently not available.');
         }
 
+        // Load modules and lessons with ordering and lesson files (PDFs, presentations, etc.)
         $course->load([
-            'modules.lessons'
+            'modules' => function ($query) {
+                $query->orderBy('sort_order');
+            },
+            'modules.lessons' => function ($query) {
+                $query->orderBy('sort_order');
+            },
+            'modules.lessons.files' // <-- load all lesson files for PDFs, etc.
         ]);
 
         return view('student.courseviewer', compact('course'));
