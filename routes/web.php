@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 // Landing page redirection
 Route::get('/', function () {
-    return view('dashboard');
+    return view('landing');
 })->name('landing');
 
 // Registration Routes
