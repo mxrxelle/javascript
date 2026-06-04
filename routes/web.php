@@ -64,6 +64,12 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/student/courseviewer/{course}', [StudentController::class, 'courseViewer'])
             ->name('student.courseviewer');
+
+        Route::post('/student/courseviewer/{course}/complete-lesson', [StudentController::class, 'completeLesson'])
+            ->name('student.courseviewer.completeLesson');
+
+        Route::post('/student/courseviewer/{course}/submit-quiz', [StudentController::class, 'submitQuiz'])
+            ->name('student.courseviewer.submitQuiz');
     });
 
     // Teacher Dashboard & Course Management
@@ -94,6 +100,22 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/teacher/analytics', [TeacherController::class, 'analytics'])
             ->name('teacher.analytics');
+
+        // Courses Master Directory
+        Route::get('/teacher/courses', [TeacherController::class, 'coursesIndex'])
+            ->name('teacher.courses.index');
+
+        // View vouchers for a course
+        Route::get('/teacher/courses/{course}/vouchers', [TeacherController::class, 'courseVouchers'])
+            ->name('teacher.courses.vouchers');
+
+        // View student progress for a course
+        Route::get('/teacher/courses/{course}/students', [TeacherController::class, 'courseStudents'])
+            ->name('teacher.courses.students');
+
+        // View student quiz attempts for a course
+        Route::get('/teacher/courses/{course}/students/{student}/quiz-attempts', [TeacherController::class, 'studentQuizAttempts'])
+            ->name('teacher.courses.student.quiz-attempts');
     });
 
     // Admin Dashboard Group

@@ -96,9 +96,9 @@
                     <span>My Submissions</span>
                 </a>
 
-                <a href="#students-section" onclick="scrollToSection('students-section')" class="text-gray-300 hover:bg-[#003b73] hover:text-white w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left no-underline block">
-                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
-                    <span>User Analytics</span>
+                <a href="{{ route('teacher.courses.index') }}" class="text-gray-300 hover:bg-[#003b73] hover:text-white w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left no-underline block">
+                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                    <span>Courses</span>
                 </a>
 
             </nav>

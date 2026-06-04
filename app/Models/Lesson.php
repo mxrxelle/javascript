@@ -23,6 +23,11 @@ class Lesson extends Model
         return $this->belongsTo(Module::class);
     }
 
+    public function quizAttempts()
+    {
+        return $this->hasMany(QuizAttempt::class, 'lesson_id');
+    }
+
     public function progress()
     {
         return $this->hasMany(StudentLessonProgress::class);

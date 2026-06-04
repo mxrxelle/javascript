@@ -176,6 +176,9 @@ class TeacherController extends Controller
                                 'presentation_size' => $lesData['presentation_size'] ?? null,
                                 'quiz_questions_count' => $lesData['quiz_questions_count'] ?? 5,
                                 'sort_order' => $lesData['sort_order'] ?? 1,
+                                'order' => $lesData['sort_order'] ?? 1,
+                                'file_path' => $lesData['presentation_path'] ?? null,
+                                'video_url' => $lesData['youtube_url'] ?? null,
                             ]);
 
                             if ($lesId) $lesson->update([
@@ -187,6 +190,9 @@ class TeacherController extends Controller
                                 'presentation_size' => $lesData['presentation_size'] ?? null,
                                 'quiz_questions_count' => $lesData['quiz_questions_count'] ?? 5,
                                 'sort_order' => $lesData['sort_order'] ?? 1,
+                                'order' => $lesData['sort_order'] ?? 1,
+                                'file_path' => $lesData['presentation_path'] ?? null,
+                                'video_url' => $lesData['youtube_url'] ?? null,
                             ]);
 
                             $passedLessonIds[] = $lesson->id;
@@ -200,6 +206,9 @@ class TeacherController extends Controller
                                         [
                                             'filename' => $fileData['filename'],
                                             'type' => $fileData['type'],
+                                            'file_name' => $fileData['filename'],
+                                            'file_path' => $fileData['path'],
+                                            'file_type' => $fileData['type'],
                                         ]
                                     );
                                     $passedFileIds[] = $file->id;
@@ -226,6 +235,16 @@ class TeacherController extends Controller
 
                                     $passedQuestionIds[] = $question->id;
 
+                                    // Keep quiz_questions in sync
+                                    \App\Models\QuizQuestion::updateOrCreate(
+                                        ['id' => $question->id],
+                                        [
+                                            'lesson_id' => $lesson->id,
+                                            'question' => $qData['question_text'],
+                                            'type' => $qData['question_type'] ?? 'multiple_choice',
+                                        ]
+                                    );
+
                                     $passedOptionIds = [];
                                     if (isset($qData['options']) && is_array($qData['options'])) {
                                         foreach ($qData['options'] as $oData) {
@@ -242,13 +261,29 @@ class TeacherController extends Controller
                                             ]);
 
                                             $passedOptionIds[] = $option->id;
+
+                                            // Keep quiz_choices in sync
+                                            \App\Models\QuizChoice::updateOrCreate(
+                                                ['id' => $option->id],
+                                                [
+                                                    'question_id' => $question->id,
+                                                    'choice_text' => $oData['option_text'],
+                                                    'is_correct' => $oData['is_correct'] ?? false,
+                                                ]
+                                            );
                                         }
                                     }
                                     QuestionOption::where('question_id', $question->id)
                                         ->whereNotIn('id', $passedOptionIds)
                                         ->delete();
+                                    \App\Models\QuizChoice::where('question_id', $question->id)
+                                        ->whereNotIn('id', $passedOptionIds)
+                                        ->delete();
                                 }
                                 Question::where('lesson_id', $lesson->id)
+                                    ->whereNotIn('id', $passedQuestionIds)
+                                    ->delete();
+                                \App\Models\QuizQuestion::where('lesson_id', $lesson->id)
                                     ->whereNotIn('id', $passedQuestionIds)
                                     ->delete();
                             }
@@ -349,5 +384,115 @@ class TeacherController extends Controller
             'type' => $file->getClientOriginalExtension(),
         ]);
         return back()->with('success','PDF uploaded successfully!');
+    }
+
+    public function coursesIndex()
+    {
+        $teacherId = Auth::id();
+        $courses = Course::with(['codes', 'voucherCodes', 'studentEnrollments'])
+            ->where('user_id', $teacherId)
+            ->where('status', 'approved')
+            ->orderBy('approved_at', 'desc')
+            ->get();
+
+        foreach ($courses as $course) {
+            $course->active_enrollments = $course->studentEnrollments->count();
+            $course->total_vouchers = $course->voucherCodes->count();
+            $course->used_vouchers = $course->voucherCodes->whereNotNull('claimed_by')->count();
+        }
+
+        return view('teacher.courses.index', compact('courses'));
+    }
+
+    public function courseVouchers(Course $course)
+    {
+        if ($course->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $vouchers = $course->voucherCodes()->with('student')->orderBy('code')->get();
+        return view('teacher.courses.vouchers', compact('course', 'vouchers'));
+    }
+
+    public function courseStudents(Course $course, Request $request)
+    {
+        if ($course->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $query = $course->studentEnrollments()->with(['user.studentProgresses']);
+
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->whereHas('user', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        $students = $query->get();
+        $totalLessons = Lesson::whereHas('module', function($q) use ($course) {
+            $q->where('course_id', $course->id);
+        })->count();
+
+        foreach ($students as $enrollment) {
+            $user = $enrollment->user;
+            $completedCount = $user->studentProgresses()
+                ->whereHas('lesson.module', function($q) use ($course) {
+                    $q->where('course_id', $course->id);
+                })
+                ->where('completed', true)
+                ->count();
+            
+            $enrollment->progress_percentage = $totalLessons > 0 ? round(($completedCount / $totalLessons) * 100) : 0;
+            
+            if ($enrollment->progress_percentage == 100) {
+                $enrollment->status = 'Certified';
+            } elseif ($enrollment->progress_percentage > 0) {
+                $enrollment->status = 'In Progress';
+            } else {
+                $enrollment->status = 'Not Started';
+            }
+        }
+
+        if ($request->has('status') && $request->status != 'All Students') {
+            $students = $students->filter(function($enrollment) use ($request) {
+                return $enrollment->status == $request->status;
+            });
+        }
+
+        $totalEnrolled = $students->count();
+        $avgCompletion = $totalEnrolled > 0 ? round($students->avg('progress_percentage')) : 0;
+        
+        $courseId = $course->id;
+        $classAverageScore = \App\Models\QuizAttempt::whereHas('lesson.module', function($q) use ($courseId) {
+            $q->where('course_id', $courseId);
+        })->whereNotNull('passed')->avg('score');
+        
+        $classAverageScore = $classAverageScore ? round($classAverageScore) : 0;        
+        $modules = $course->modules()->with('lessons')->orderBy('sort_order')->get();
+
+        return view('teacher.courses.students', compact(
+            'course', 'students', 'totalEnrolled', 'avgCompletion', 'classAverageScore', 'modules', 'request'
+        ));
+    }
+
+    public function studentQuizAttempts(Course $course, User $student, Request $request)
+    {
+        if ($course->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $courseId = $course->id;
+        
+        $attempts = \App\Models\QuizAttempt::with(['lesson.module', 'questions.question.choices', 'questions.choice'])
+            ->where('student_id', $student->id)
+            ->whereHas('lesson.module', function($q) use ($courseId) {
+                $q->where('course_id', $courseId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($attempts);
     }
 }

@@ -1081,6 +1081,21 @@
         // Apply status
         courseState.status = status;
 
+        // Prepare files array for backend sync
+        courseState.modules.forEach(mod => {
+            mod.items.forEach(item => {
+                if (item.presentation_path) {
+                    item.files = [{
+                        path: item.presentation_path,
+                        filename: item.presentation_path.split('/').pop(),
+                        type: item.presentation_path.split('.').pop().toLowerCase()
+                    }];
+                } else {
+                    item.files = [];
+                }
+            });
+        });
+
         // Display saving status
         const statusText = document.getElementById('saveStatusText');
         statusText.innerHTML = `

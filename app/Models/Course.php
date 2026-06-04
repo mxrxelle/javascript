@@ -38,4 +38,14 @@ class Course extends Model
         return $this->hasMany(Module::class)
                     ->orderBy('sort_order');
     }
+
+    public function voucherCodes()
+    {
+        return $this->hasMany(VoucherCode::class);
+    }
+
+    public function studentEnrollments()
+    {
+        return $this->hasMany(StudentCourse::class);
+    }
 }
